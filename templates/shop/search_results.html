@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="lt">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Paieškos rezultatai</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+      }
+      .no-results {
+        color: #c0392b;
+        font-size: 1.1em;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Paieška: „{{ query }}"</h1>
+
+    {% if no_results %}
+    <p class="no-results">
+      Pagal užklausą „{{ query }}" rezultatų nerasta. Pabandykite kitą paieškos
+      žodį.
+    </p>
+    {% else %}
+    <ul>
+      {% for product in results %}
+      <li>
+        {{ product.name }} – {{ product.store|title }} – {{ product.price }} €
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <br />
+    <a href="/">Grįžti atgal</a>
+  </body>
+</html>
