@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 def _load_module(module_name, file_name):
@@ -35,7 +35,7 @@ class _Product:
 fake_models.Product = _Product
 sys.modules["shop.models"] = fake_models
 
-comparison_module = _load_module("shop.comparison", "comparison.py")
+comparison_module = _load_module("shop.comparison", "shop/comparison.py")
 compare_basket_prices = comparison_module.compare_basket_prices
 
 
