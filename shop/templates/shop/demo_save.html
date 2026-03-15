@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="lt">
+  <head>
+    <meta charset="utf-8" />
+    <title>Demo: Išsaugoti krepšelį</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 30px; }
+      form { max-width:600px; display:flex; gap:8px; align-items:center; }
+      input[type=text] { flex:1; padding:8px; }
+      button { padding:8px 12px; }
+      .ok { background:#e9ffe9; border:1px solid #cfc; padding:8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Demo: Išsaugoti krepšelį</h1>
+
+    {% if saved %}
+    <div class="ok">Šablonas išsaugotas: <strong>{{ saved }}</strong></div>
+    {% endif %}
+
+    <p>Šis puslapis yra demonstracija. Forma nesitikrina prisijungimo ir saugo
+      šablonus tik naršyklės sesijoje.</p>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <div style="margin-bottom:10px;">
+        <input name="name" type="text" placeholder="Pvz. Šeimos pirkiniai" />
+      </div>
+
+      <fieldset style="border:1px solid #ddd;padding:12px;margin-bottom:10px;">
+        <legend>Pasirinkite prekes</legend>
+        {% for p in products %}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <label style="flex:1;">
+            <input type="checkbox" name="select_{{ p.id }}" value="1" />
+            {{ p.name }}
+          </label>
+          <input type="number" name="qty_{{ p.id }}" value="1" min="1" style="width:80px;padding:6px;" />
+        </div>
+        {% endfor %}
+      </fieldset>
+
+      <button type="submit">Išsaugoti (demo)</button>
+    </form>
+
+    <p style="margin-top:20px;"><a href="{% url 'shop:compare' %}">Grįžti į palyginimą</a></p>
+  </body>
+</html>
