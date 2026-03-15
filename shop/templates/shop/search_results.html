@@ -23,7 +23,16 @@
     </style>
   </head>
   <body>
-    <h1>Paieška: „{{ query }}"</h1>
+    <h1>Paieška</h1>
+
+    <div style="margin-bottom:12px;">
+      <input id="live-search" type="search" placeholder="Įveskite prekę (min. 3 simboliai)..." style="width:320px;padding:8px;font-size:1em;" value="{{ query }}" />
+    </div>
+
+    <h2 id="live-heading" style="margin:6px 0 12px 0;display:none;">Rezultatai:</h2>
+    <div id="live-results" style="margin-bottom:14px;"></div>
+
+    <h3 id="server-heading" style="margin:6px 0 12px 0;">Paieška: „{{ query }}"</h3>
 
     {% if no_results %}
     <p class="no-results">
@@ -51,6 +60,67 @@
     </div>
 
     <script>
+      // Live search logic: query API when >=3 chars and update list
+      (function(){
+        const input = document.getElementById('live-search');
+        const resultsEl = document.getElementById('live-results');
+        const liveHeading = document.getElementById('live-heading');
+        const serverHeading = document.getElementById('server-heading');
+        let timer = null;
+
+        function renderResults(list, query) {
+          resultsEl.innerHTML = '';
+          if (!list || list.length === 0) {
+            liveHeading.style.display = 'none';
+            return;
+          }
+          liveHeading.style.display = '';
+          const ul = document.createElement('ul');
+          ul.style.listStyle = 'none';
+          ul.style.padding = '0';
+          list.forEach(it => {
+            const li = document.createElement('li');
+            li.style.padding = '6px 0';
+            const a = document.createElement('a');
+            a.href = '/product/' + encodeURIComponent(it.rep_id) + '/';
+            a.textContent = it.name;
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+          resultsEl.appendChild(ul);
+        }
+
+        function doSearch(q) {
+          if (!q || q.length < 3) {
+            renderResults([], q);
+            serverHeading.style.display = '';
+            return;
+          }
+          serverHeading.style.display = 'none';
+          fetch('/api/search/?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
+            .then(r => r.json())
+            .then(data => {
+              if (data && Array.isArray(data.results)) {
+                if (data.results.length === 0) {
+                  resultsEl.innerHTML = '<p class="no-results">Ieškomos prekės nerasta</p>';
+                  liveHeading.style.display = '';
+                } else {
+                  renderResults(data.results, q);
+                }
+              }
+            }).catch(err => { console.error('search error', err); });
+        }
+
+        input.addEventListener('input', function(e){
+          const q = (e.target.value || '').trim();
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => doSearch(q), 200);
+        });
+
+        // initial load: perform search if page has initial query
+        (function(){ const q = (input.value||'').trim(); if (q.length>=3) doSearch(q); })();
+      })();
+
       // read CSRF token from cookies (Django default)
       function getCookie(name) {
         const cookies = document.cookie ? document.cookie.split(';') : [];

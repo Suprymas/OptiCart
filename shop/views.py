@@ -11,6 +11,7 @@ from django.db import DatabaseError
 from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
 
 
 def search_view(request):
@@ -194,6 +195,68 @@ def demo_chart_data(request):
             result[store] = _synthetic_history_for_key(prod + '|' + store, days)
 
     return JsonResponse({'series': result})
+
+
+def search_api(request):
+    """Return JSON list of matching product groups for client-side live search."""
+    q = request.GET.get('q', '')
+    results_qs = search_products(q)
+
+    # build unique-name groups (name + representative id)
+    groups = []
+    seen = set()
+    for p in results_qs:
+        name = getattr(p, 'name', '')
+        if name in seen:
+            continue
+        seen.add(name)
+        groups.append({'name': name, 'rep_id': getattr(p, 'id', None)})
+
+    return JsonResponse({'query': q, 'results': groups, 'no_results': q != '' and len(groups) == 0})
+
+
+def product_detail(request, product_id: int):
+    """Render product detail using the same product-group UI as search results.
+
+    This preserves the quantity controls and add/update behaviour present
+    in the search results listing.
+    """
+    prod = get_object_or_404(Product, pk=product_id)
+
+    # find all products that share the same name (different stores)
+    stores = list(Product.objects.filter(name=prod.name))
+
+    # session cart map
+    sess_cart = request.session.get('cart', {})
+
+    # Build name -> quantity map from session cart. Support old numeric-id keys and name keys.
+    name_qty = {}
+    if sess_cart:
+        for key, val in sess_cart.items():
+            try:
+                kpid = int(key)
+                try:
+                    p = Product.objects.get(pk=kpid)
+                    name = p.name
+                except Exception:
+                    name = str(key)
+            except Exception:
+                name = str(key)
+
+            try:
+                qty = int(val or 0)
+            except Exception:
+                qty = 0
+            name_qty[name] = name_qty.get(name, 0) + qty
+
+    in_cart_qty = int(name_qty.get(prod.name, 0)) if name_qty.get(prod.name, 0) > 0 else 0
+
+    return render(request, 'shop/product_detail.html', {
+        'product': prod,
+        'stores': stores,
+        'in_cart_qty': in_cart_qty,
+        'cart': sess_cart,
+    })
 
 
 @require_http_methods(["POST"])
