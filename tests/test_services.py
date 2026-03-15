@@ -1,6 +1,8 @@
 from django.test import SimpleTestCase, Client
 from unittest.mock import MagicMock, patch
 from decimal import Decimal
+import shop.services
+import shop.views
 
 
 class ServicesTests(SimpleTestCase):
