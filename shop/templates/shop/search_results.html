@@ -23,7 +23,16 @@
     </style>
   </head>
   <body>
-    <h1>Paieška: „{{ query }}"</h1>
+    <h1>Paieška</h1>
+
+    <div style="margin-bottom:12px;">
+      <input id="live-search" type="search" placeholder="Įveskite prekę (min. 3 simboliai)..." style="width:320px;padding:8px;font-size:1em;" value="{{ query }}" />
+    </div>
+
+    <h2 id="live-heading" style="margin:6px 0 12px 0;display:none;">Rezultatai:</h2>
+    <div id="live-results" style="margin-bottom:14px;"></div>
+
+    <h3 id="server-heading" style="margin:6px 0 12px 0;">Paieška: „{{ query }}"</h3>
 
     {% if no_results %}
     <p class="no-results">
@@ -31,13 +40,164 @@
       žodį.
     </p>
     {% else %}
-    <ul>
-      {% for product in results %}
-      <li>
-        {{ product.name }} – {{ product.store|title }} – {{ product.price }} €
-      </li>
+    <div>
+      {% for group in groups %}
+      <div class="product-group" data-product-name="{{ group.name }}" data-product-id="{{ group.rep_id }}" style="margin-bottom:16px;">
+        <h3 style="margin:0 0 6px 0;">{{ group.name }} {% if group.in_cart_qty > 0 %}<small style="color:gray;">(krepšelyje: {{ group.in_cart_qty }})</small>{% endif %}</h3>
+        <ul style="margin:0 0 6px 0; padding-left:18px;">
+          {% for p in group.stores %}
+          <li>{{ p.store|title }} – {{ p.price }} €</li>
+          {% endfor %}
+        </ul>
+        <div style="margin-top:6px;">
+          <button class="qty-decr">−</button>
+          <span class="qty" data-value="{{ group.in_cart_qty|default:1 }}">{{ group.in_cart_qty|default:1 }}</span>
+          <button class="qty-incr">+</button>
+          <button class="add-btn" style="margin-left:8px;">{% if group.in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Pridėti{% endif %}</button>
+        </div>
+      </div>
       {% endfor %}
-    </ul>
+    </div>
+
+    <script>
+      // Live search logic: query API when >=3 chars and update list
+      (function(){
+        const input = document.getElementById('live-search');
+        const resultsEl = document.getElementById('live-results');
+        const liveHeading = document.getElementById('live-heading');
+        const serverHeading = document.getElementById('server-heading');
+        let timer = null;
+
+        function renderResults(list, query) {
+          resultsEl.innerHTML = '';
+          if (!list || list.length === 0) {
+            liveHeading.style.display = 'none';
+            return;
+          }
+          liveHeading.style.display = '';
+          const ul = document.createElement('ul');
+          ul.style.listStyle = 'none';
+          ul.style.padding = '0';
+          list.forEach(it => {
+            const li = document.createElement('li');
+            li.style.padding = '6px 0';
+            const a = document.createElement('a');
+            a.href = '/product/' + encodeURIComponent(it.rep_id) + '/';
+            a.textContent = it.name;
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+          resultsEl.appendChild(ul);
+        }
+
+        function doSearch(q) {
+          if (!q || q.length < 3) {
+            renderResults([], q);
+            serverHeading.style.display = '';
+            return;
+          }
+          serverHeading.style.display = 'none';
+          fetch('/api/search/?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
+            .then(r => r.json())
+            .then(data => {
+              if (data && Array.isArray(data.results)) {
+                if (data.results.length === 0) {
+                  resultsEl.innerHTML = '<p class="no-results">Ieškomos prekės nerasta</p>';
+                  liveHeading.style.display = '';
+                } else {
+                  renderResults(data.results, q);
+                }
+              }
+            }).catch(err => { console.error('search error', err); });
+        }
+
+        input.addEventListener('input', function(e){
+          const q = (e.target.value || '').trim();
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => doSearch(q), 200);
+        });
+
+        // initial load: perform search if page has initial query
+        (function(){ const q = (input.value||'').trim(); if (q.length>=3) doSearch(q); })();
+      })();
+
+      // read CSRF token from cookies (Django default)
+      function getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (let i = 0; i < cookies.length; i++) {
+          const c = cookies[i].trim();
+          if (c.startsWith(name + '=')) return decodeURIComponent(c.substring(name.length + 1));
+        }
+        return null;
+      }
+
+      document.addEventListener('click', function (e) {
+        const tgt = e.target;
+
+        if (tgt.classList.contains('qty-incr') || tgt.classList.contains('qty-decr')) {
+          const container = tgt.closest('.product-group');
+          if (!container) return;
+          const qtySpan = container.querySelector('.qty');
+          if (!qtySpan) return;
+          let val = parseInt(qtySpan.dataset.value || qtySpan.textContent || '1', 10) || 1;
+          if (tgt.classList.contains('qty-incr')) val = Math.min(10, val + 1);
+          else val = Math.max(1, val - 1);
+          qtySpan.dataset.value = String(val);
+          qtySpan.textContent = String(val);
+          return;
+        }
+
+        if (tgt.classList.contains('add-btn')) {
+          const group = tgt.closest('.product-group');
+          if (!group) return;
+          const pid = group.dataset.productId;
+          const pname = group.dataset.productName;
+          const qtySpan = group.querySelector('.qty');
+          const qty = parseInt(qtySpan && (qtySpan.dataset.value || qtySpan.textContent) || '1', 10) || 1;
+          const url = "{% url 'shop:add_to_cart' %}";
+          const csrftoken = getCookie('csrftoken');
+
+          // disable button while request in-flight
+          tgt.disabled = true;
+
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrftoken || ''
+            },
+            body: JSON.stringify({product_id: pid, quantity: qty})
+          }).then(r => r.json()).then(data => {
+            if (data && data.success) {
+              const verb = data.action === 'updated' ? 'Atnaujinta' : 'Pridėta';
+              tgt.textContent = verb + ' (' + data.quantity + ')';
+
+              // update displayed aggregated quantity in the group header
+              const h3 = group.querySelector('h3');
+              if (h3) {
+                let small = h3.querySelector('small');
+                if (!small) {
+                  small = document.createElement('small');
+                  small.style.color = 'gray';
+                  h3.appendChild(document.createTextNode(' '));
+                  h3.appendChild(small);
+                }
+                small.textContent = '(krepšelyje: ' + data.quantity + ')';
+              }
+
+              setTimeout(() => { tgt.textContent = data.action === 'updated' ? 'Atnaujinti' : 'Pridėti'; tgt.disabled = false; }, 1200);
+            } else if (data && data.error) {
+              alert('Klaida: ' + data.error);
+              tgt.disabled = false;
+            }
+          }).catch(err => {
+            console.error(err);
+            alert('Tinklo arba serverio klaida');
+            tgt.disabled = false;
+          });
+        }
+      });
+    </script>
     {% endif %}
 
     <br />
