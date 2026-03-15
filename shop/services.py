@@ -132,4 +132,16 @@ def compute_price_change(product_id: int, start: date, end: date) -> Dict:
     except Exception as exc:
         result['error'] = str(exc)
 
+    # Determine whether the percent change is significant enough to notify.
+    # Business rule: alert if absolute percent change > 50%
+    result['alert'] = False
+    pct = result.get('percent_change')
+    if isinstance(pct, (int, float)):
+        if abs(pct) > 50.0:
+            result['alert'] = True
+            # TODO: enqueue email alert here (e.g. add to EmailQueue or call mailer)
+            # Example (pseudo):
+            # EmailQueue.enqueue(subject=f"Price alert for product {product_id}",
+            #                    body=f"Price changed {pct}% from {sp} to {ep} between {start} and {end}.")
+
     return result
