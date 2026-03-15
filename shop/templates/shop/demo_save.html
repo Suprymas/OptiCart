@@ -43,6 +43,112 @@
       <button type="submit">Išsaugoti (demo)</button>
     </form>
 
+      <hr />
+      <h2>Kainų diagrama (demo)</h2>
+      <p>Pasirinkite prekę, kad peržiūrėtumėte kainų tendenciją.</p>
+      <div style="max-width:700px;">
+        <label for="chart_product">Prekė:</label>
+        <select id="chart_product" style="padding:6px;margin-left:8px;">
+          {% for p in products %}
+          <option value="{{ p.name }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="interval" style="margin-left:12px;">Intervalas:</label>
+        <select id="interval" style="padding:6px;margin-left:8px;">
+          <option value="7">7 dienos</option>
+          <option value="30" selected>30 dienų</option>
+          <option value="90">90 dienų</option>
+        </select>
+
+        <div style="margin-left:12px;display:inline-block;vertical-align:middle;">
+          <label><input type="checkbox" id="multi_stores" checked /> Rodyti keletą parduotuvių</label>
+        </div>
+
+        <div style="margin-top:12px;">
+          <canvas id="priceChart" width="700" height="300"></canvas>
+        </div>
+      </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        const chartUrl = "{% url 'shop:compare_demo_chart' %}";
+        let priceChart = null;
+
+        async function loadChart(product, interval, stores) {
+          const params = new URLSearchParams();
+          params.set('product', product);
+          params.set('interval', String(interval));
+          params.set('stores', stores.join(','));
+
+          const res = await fetch(`${chartUrl}?${params.toString()}`);
+          const json = await res.json();
+          if (json.error) {
+            alert(json.error);
+            return;
+          }
+          const seriesObj = json.series || {};
+          const storesKeys = Object.keys(seriesObj);
+          if (storesKeys.length === 0) {
+            alert('No data');
+            return;
+          }
+
+          const labels = seriesObj[storesKeys[0]].map(s => s.date);
+          const colors = ['rgb(75, 192, 192)', 'rgb(255,99,132)', 'rgb(54,162,235)', 'rgb(153,102,255)'];
+          const datasets = storesKeys.map((st, idx) => ({
+            label: st,
+            data: seriesObj[st].map(s => s.price),
+            borderColor: colors[idx % colors.length],
+            tension: 0.2,
+            fill: false,
+          }));
+
+          const ctx = document.getElementById('priceChart').getContext('2d');
+          if (priceChart) {
+            priceChart.data.labels = labels;
+            priceChart.data.datasets = datasets;
+            priceChart.update();
+          } else {
+            priceChart = new Chart(ctx, {
+              type: 'line',
+              data: { labels: labels, datasets: datasets },
+              options: {
+                responsive: true,
+                plugins: { tooltip: { mode: 'index', intersect: false } },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                scales: {
+                  x: { display: true, title: { display: true, text: 'Data' } },
+                  y: { display: true, title: { display: true, text: 'Kaina' } }
+                }
+              }
+            });
+          }
+        }
+
+        function selectedStores() {
+          const multi = document.getElementById('multi_stores').checked;
+          const all = ['barbora','rimi','lidl'];
+          if (!multi) {
+            return [all[0]];
+          }
+          return all;
+        }
+
+        function reload() {
+          const product = document.getElementById('chart_product').value;
+          const interval = parseInt(document.getElementById('interval').value, 10);
+          const stores = selectedStores();
+          loadChart(product, interval, stores);
+        }
+
+        document.getElementById('chart_product').addEventListener('change', reload);
+        document.getElementById('interval').addEventListener('change', reload);
+        document.getElementById('multi_stores').addEventListener('change', reload);
+
+        // load initial
+        reload();
+      </script>
     <p style="margin-top:20px;"><a href="{% url 'shop:compare' %}">Grįžti į palyginimą</a></p>
   </body>
 </html>
