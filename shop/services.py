@@ -5,6 +5,9 @@ import os
 from django.db.models import QuerySet
 
 from .models import BasketTemplateItem, Product
+from .models import PriceHistory
+from django.db.models import Q
+from datetime import date
 
 
 def _find_product_for_store(name: str, store: str):
@@ -64,5 +67,69 @@ def compare_template_prices(template_id: int, stores: List[str] = None) -> Dict:
 
     if any(result["totals"].values()):
         result["cheapest_store"] = min(result["totals"], key=result["totals"].get)
+
+    return result
+
+
+def _get_price_at_date(product_id: int, when: date):
+    """Return the price (Decimal) for product at the given date or None.
+
+    Preference is given to a PriceHistory entry that explicitly covers the date
+    (date_from <= when < date_until or date_until is null). The most recent
+    matching entry (largest date_from) is returned.
+    """
+    ph = (
+        PriceHistory.objects.filter(product_id=product_id)
+        .filter(date_from__lte=when)
+        .filter(Q(date_until__isnull=True) | Q(date_until__gt=when))
+        .order_by('-date_from')
+        .first()
+    )
+    if ph:
+        return ph.price
+    return None
+
+
+def compute_price_change(product_id: int, start: date, end: date) -> Dict:
+    """Compute percent price change for a product between two dates.
+
+    Returns a dict with keys: start_price, end_price, percent_change.
+    If a price is missing for either end, percent_change will be None and
+    a 'missing' key will explain which price was absent.
+    """
+    if start > end:
+        start, end = end, start
+
+    start_price = _get_price_at_date(product_id, start)
+    end_price = _get_price_at_date(product_id, end)
+
+    result = {
+        'start_price': start_price,
+        'end_price': end_price,
+        'percent_change': None,
+    }
+
+    if start_price is None or end_price is None:
+        missing = []
+        if start_price is None:
+            missing.append('start')
+        if end_price is None:
+            missing.append('end')
+        result['missing'] = missing
+        return result
+
+    try:
+        # Decimal arithmetic is handled by Django DecimalField type; convert to float for percent calc
+        sp = float(start_price)
+        ep = float(end_price)
+        if sp == 0:
+            # avoid division by zero
+            result['percent_change'] = None
+            result['error'] = 'start_price_zero'
+        else:
+            pct = ((ep - sp) / sp) * 100.0
+            result['percent_change'] = round(pct, 4)
+    except Exception as exc:
+        result['error'] = str(exc)
 
     return result
