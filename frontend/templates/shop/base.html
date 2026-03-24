@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="lt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}OptiCart{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'shop/styles.css' %}" />
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="site-header">
+      <a class="brand" href="{% url 'shop:search' %}">
+        <span class="brand-mark">O</span>
+        <span>OptiCart</span>
+      </a>
+      <nav class="site-nav">
+        <a href="{% url 'shop:search' %}">Paieska</a>
+        <a href="{% url 'shop:compare_demo' %}">Demo</a>
+        <a href="{% url 'shop:compare' %}">Palyginimas</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

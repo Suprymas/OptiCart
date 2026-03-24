@@ -1,29 +1,27 @@
-<!doctype html>
-<html lang="lt">
-  <head>
-    <meta charset="utf-8" />
-    <title>Prek17: {{ product.name }}</title>
-    <style>body{font-family:Arial,sans-serif;margin:24px;} .meta{color:gray;margin-bottom:8px;} ul{list-style:none;padding:0;} li{padding:6px 0;border-bottom:1px solid #eee;}</style>
-  </head>
-  <body>
+{% extends 'shop/base.html' %}
+
+{% block title %}Preke: {{ product.name }}{% endblock %}
+
+{% block content %}
+  <section class="card stack">
     <h1>{{ product.name }}</h1>
 
-    <div class="product-group" data-product-name="{{ product.name }}" data-product-id="{{ product.id }}" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 6px 0;">{{ product.name }} {% if in_cart_qty > 0 %}<small style="color:gray;">(krepšelyje: {{ in_cart_qty }})</small>{% endif %}</h3>
-      <ul style="margin:0 0 6px 0; padding-left:18px;">
+    <div class="product-group" data-product-name="{{ product.name }}" data-product-id="{{ product.id }}">
+      <h3>{{ product.name }} {% if in_cart_qty > 0 %}<small class="subtle">(krepselyje: {{ in_cart_qty }})</small>{% endif %}</h3>
+      <ul class="clean">
         {% for p in stores %}
-        <li>{{ p.store|title }} – {{ p.price }} €</li>
+        <li>{{ p.store|title }} - {{ p.price }} EUR</li>
         {% endfor %}
       </ul>
-      <div style="margin-top:6px;">
+      <div class="product-controls">
         <button class="qty-decr">−</button>
         <span class="qty" data-value="{{ in_cart_qty|default:1 }}">{{ in_cart_qty|default:1 }}</span>
         <button class="qty-incr">+</button>
-        <button class="add-btn" style="margin-left:8px;">{% if in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Pridėti{% endif %}</button>
+        <button class="add-btn">{% if in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Prideti{% endif %}</button>
       </div>
     </div>
 
-    <p><a href="/">Grįžti atgal</a></p>
+    <p><a href="/">Grizti atgal</a></p>
 
     <script>
       // reuse add-to-cart logic used in search results
@@ -72,7 +70,7 @@
             body: JSON.stringify({product_id: pid, quantity: qty})
           }).then(r => r.json()).then(data => {
             if (data && data.success) {
-              const verb = data.action === 'updated' ? 'Atnaujinta' : 'Pridėta';
+              const verb = data.action === 'updated' ? 'Atnaujinta' : 'Prideta';
               tgt.textContent = verb + ' (' + data.quantity + ')';
 
               const h3 = group.querySelector('h3');
@@ -80,14 +78,14 @@
                 let small = h3.querySelector('small');
                 if (!small) {
                   small = document.createElement('small');
-                  small.style.color = 'gray';
+                  small.classList.add('subtle');
                   h3.appendChild(document.createTextNode(' '));
                   h3.appendChild(small);
                 }
-                small.textContent = '(krepšelyje: ' + data.quantity + ')';
+                small.textContent = '(krepselyje: ' + data.quantity + ')';
               }
 
-              setTimeout(() => { tgt.textContent = data.action === 'updated' ? 'Atnaujinti' : 'Pridėti'; tgt.disabled = false; }, 1200);
+              setTimeout(() => { tgt.textContent = data.action === 'updated' ? 'Atnaujinti' : 'Prideti'; tgt.disabled = false; }, 1200);
             } else if (data && data.error) {
               alert('Klaida: ' + data.error);
               tgt.disabled = false;
@@ -100,5 +98,5 @@
         }
       });
     </script>
-  </body>
-</html>
+  </section>
+{% endblock %}

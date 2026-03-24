@@ -1,59 +1,40 @@
-<!doctype html>
-<html lang="lt">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Paieškos rezultatai</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 30px;
-      }
-      .no-results {
-        color: #c0392b;
-        font-size: 1.1em;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-      }
-      li {
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Paieška</h1>
+{% extends 'shop/base.html' %}
 
-    <div style="margin-bottom:12px;">
-      <input id="live-search" type="search" placeholder="Įveskite prekę (min. 3 simboliai)..." style="width:320px;padding:8px;font-size:1em;" value="{{ query }}" />
+{% block title %}Paieskos rezultatai{% endblock %}
+
+{% block content %}
+  <section class="card stack">
+    <h1>Paieska</h1>
+
+    <div>
+      <input id="live-search" class="search-box" type="search" placeholder="Iveskite preke (min. 3 simboliai)..." value="{{ query }}" />
     </div>
 
-    <h2 id="live-heading" style="margin:6px 0 12px 0;display:none;">Rezultatai:</h2>
-    <div id="live-results" style="margin-bottom:14px;"></div>
+    <h2 id="live-heading" style="display:none;">Rezultatai:</h2>
+    <div id="live-results"></div>
 
-    <h3 id="server-heading" style="margin:6px 0 12px 0;">Paieška: „{{ query }}"</h3>
+    <h3 id="server-heading">Paieska: "{{ query }}"</h3>
 
     {% if no_results %}
     <p class="no-results">
-      Pagal užklausą „{{ query }}" rezultatų nerasta. Pabandykite kitą paieškos
-      žodį.
+      Pagal uzklausa "{{ query }}" rezultatu nerasta. Pabandykite kita paieskos
+      zodi.
     </p>
     {% else %}
-    <div>
+    <div class="stack">
       {% for group in groups %}
-      <div class="product-group" data-product-name="{{ group.name }}" data-product-id="{{ group.rep_id }}" style="margin-bottom:16px;">
-        <h3 style="margin:0 0 6px 0;">{{ group.name }} {% if group.in_cart_qty > 0 %}<small style="color:gray;">(krepšelyje: {{ group.in_cart_qty }})</small>{% endif %}</h3>
-        <ul style="margin:0 0 6px 0; padding-left:18px;">
+      <div class="product-group" data-product-name="{{ group.name }}" data-product-id="{{ group.rep_id }}">
+        <h3>{{ group.name }} {% if group.in_cart_qty > 0 %}<small class="subtle">(krepselyje: {{ group.in_cart_qty }})</small>{% endif %}</h3>
+        <ul class="clean">
           {% for p in group.stores %}
-          <li>{{ p.store|title }} – {{ p.price }} €</li>
+          <li>{{ p.store|title }} - {{ p.price }} EUR</li>
           {% endfor %}
         </ul>
-        <div style="margin-top:6px;">
+        <div class="product-controls">
           <button class="qty-decr">−</button>
           <span class="qty" data-value="{{ group.in_cart_qty|default:1 }}">{{ group.in_cart_qty|default:1 }}</span>
           <button class="qty-incr">+</button>
-          <button class="add-btn" style="margin-left:8px;">{% if group.in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Pridėti{% endif %}</button>
+          <button class="add-btn">{% if group.in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Prideti{% endif %}</button>
         </div>
       </div>
       {% endfor %}
@@ -102,7 +83,7 @@
             .then(data => {
               if (data && Array.isArray(data.results)) {
                 if (data.results.length === 0) {
-                  resultsEl.innerHTML = '<p class="no-results">Ieškomos prekės nerasta</p>';
+                  resultsEl.innerHTML = '<p class="no-results">Ieskomos prekes nerasta</p>';
                   liveHeading.style.display = '';
                 } else {
                   renderResults(data.results, q);
@@ -169,7 +150,7 @@
             body: JSON.stringify({product_id: pid, quantity: qty})
           }).then(r => r.json()).then(data => {
             if (data && data.success) {
-              const verb = data.action === 'updated' ? 'Atnaujinta' : 'Pridėta';
+              const verb = data.action === 'updated' ? 'Atnaujinta' : 'Prideta';
               tgt.textContent = verb + ' (' + data.quantity + ')';
 
               // update displayed aggregated quantity in the group header
@@ -178,14 +159,14 @@
                 let small = h3.querySelector('small');
                 if (!small) {
                   small = document.createElement('small');
-                  small.style.color = 'gray';
+                  small.classList.add('subtle');
                   h3.appendChild(document.createTextNode(' '));
                   h3.appendChild(small);
                 }
-                small.textContent = '(krepšelyje: ' + data.quantity + ')';
+                small.textContent = '(krepselyje: ' + data.quantity + ')';
               }
 
-              setTimeout(() => { tgt.textContent = data.action === 'updated' ? 'Atnaujinti' : 'Pridėti'; tgt.disabled = false; }, 1200);
+              setTimeout(() => { tgt.textContent = data.action === 'updated' ? 'Atnaujinti' : 'Prideti'; tgt.disabled = false; }, 1200);
             } else if (data && data.error) {
               alert('Klaida: ' + data.error);
               tgt.disabled = false;
@@ -200,7 +181,6 @@
     </script>
     {% endif %}
 
-    <br />
-    <a href="/">Grįžti atgal</a>
-  </body>
-</html>
+    <p><a href="/">Grizti atgal</a></p>
+  </section>
+{% endblock %}
