@@ -1,0 +1,58 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Krepseliu palyginimas{% endblock %}
+
+{% block content %}
+  <section class="card stack">
+    <h1>Krepseliu kainu palyginimas</h1>
+
+    {% if comparison.items %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Preke</th>
+            <th>Kiekis</th>
+            <th>Barbora (EUR)</th>
+            <th>Rimi (EUR)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in comparison.items %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>
+              {% if item.prices.barbora %} {{ item.prices.barbora }} {% else %}
+              <span class="empty">Nerasta</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if item.prices.rimi %} {{ item.prices.rimi }} {% else %}
+              <span class="empty">Nerasta</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2"><strong>Is viso</strong></td>
+            <td>{{ comparison.totals.barbora }}</td>
+            <td>{{ comparison.totals.rimi }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    {% if comparison.cheapest_store %}
+    <p class="cheapest">
+      Pigiausias variantas: {{ comparison.cheapest_store|title }}
+    </p>
+    {% endif %} {% else %}
+    <p class="empty">Jusu krepselis tuscias.</p>
+    {% endif %}
+
+    <p><a href="/">Grizti atgal</a></p>
+  </section>
+{% endblock %}
