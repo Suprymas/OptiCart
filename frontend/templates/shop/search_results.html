@@ -6,9 +6,18 @@
   <section class="card stack">
     <h1>Paieska</h1>
 
-    <div>
+    <div class="search-controls">
       <input id="live-search" class="search-box" type="search" placeholder="Iveskite preke (min. 3 simboliai)..." value="{{ query }}" />
+      <select id="category-filter" class="category-select" aria-label="Kategorijos filtras">
+        {% for value, label in category_options %}
+        <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
     </div>
+    <div id="extra-filters" class="extra-filters"></div>
+
+    {{ filter_ui_schema|json_script:"filter-ui-schema" }}
+    {{ selected_filters|json_script:"selected-filters" }}
 
     <h2 id="live-heading" style="display:none;">Rezultatai:</h2>
     <div id="live-results"></div>
@@ -44,10 +53,102 @@
       // Live search logic: query API when >=3 chars and update list
       (function(){
         const input = document.getElementById('live-search');
+        const categorySelect = document.getElementById('category-filter');
+        const extraFiltersEl = document.getElementById('extra-filters');
         const resultsEl = document.getElementById('live-results');
         const liveHeading = document.getElementById('live-heading');
         const serverHeading = document.getElementById('server-heading');
+        const filterSchema = JSON.parse(document.getElementById('filter-ui-schema').textContent || '{}');
+        const selectedFilters = JSON.parse(document.getElementById('selected-filters').textContent || '{}');
         let timer = null;
+
+        function updateDependentVisibility() {
+          const selects = extraFiltersEl.querySelectorAll('select[data-field-name]');
+          const valueMap = {};
+          selects.forEach(sel => { valueMap[sel.dataset.fieldName] = (sel.value || '').trim(); });
+
+          selects.forEach(sel => {
+            const dependency = sel.dataset.dependsOn;
+            if (!dependency) return;
+            const dependencyValue = sel.dataset.dependsValue || '';
+            const row = sel.closest('.filter-row');
+            if (!row) return;
+            if ((valueMap[dependency] || '') === dependencyValue) {
+              row.style.display = '';
+            } else {
+              sel.value = '';
+              row.style.display = 'none';
+            }
+          });
+        }
+
+        function renderExtraFilters(category) {
+          extraFiltersEl.innerHTML = '';
+          const fields = filterSchema[category] || [];
+          if (fields.length === 0) return;
+
+          fields.forEach(field => {
+            const row = document.createElement('div');
+            row.className = 'filter-row';
+
+            const label = document.createElement('label');
+            label.className = 'subtle';
+            label.setAttribute('for', 'filter-' + field.name);
+            label.textContent = field.label + ':';
+
+            const select = document.createElement('select');
+            select.id = 'filter-' + field.name;
+            select.className = 'category-select filter-select';
+            select.dataset.fieldName = field.name;
+            if (field.depends_on) {
+              select.dataset.dependsOn = field.depends_on.name;
+              select.dataset.dependsValue = field.depends_on.value;
+            }
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Visi';
+            select.appendChild(placeholder);
+
+            (field.options || []).forEach(opt => {
+              const option = document.createElement('option');
+              option.value = opt.value;
+              option.textContent = opt.label;
+              if ((selectedFilters[field.name] || '') === opt.value) {
+                option.selected = true;
+              }
+              select.appendChild(option);
+            });
+
+            row.appendChild(label);
+            row.appendChild(select);
+            extraFiltersEl.appendChild(row);
+          });
+
+          updateDependentVisibility();
+
+          extraFiltersEl.querySelectorAll('select[data-field-name]').forEach(sel => {
+            sel.addEventListener('change', function(){
+              selectedFilters[sel.dataset.fieldName] = (sel.value || '').trim();
+              updateDependentVisibility();
+              const q = (input.value || '').trim();
+              const selectedCategory = (categorySelect.value || '').trim();
+              if (timer) clearTimeout(timer);
+              timer = setTimeout(() => doSearch(q, selectedCategory), 100);
+            });
+          });
+        }
+
+        function collectExtraFilterParams() {
+          const params = new URLSearchParams();
+          extraFiltersEl.querySelectorAll('select[data-field-name]').forEach(sel => {
+            if (sel.closest('.filter-row') && sel.closest('.filter-row').style.display === 'none') return;
+            const value = (sel.value || '').trim();
+            if (!value) return;
+            params.append(sel.dataset.fieldName, value);
+          });
+          return params;
+        }
 
         function renderResults(list, query) {
           resultsEl.innerHTML = '';
@@ -71,14 +172,23 @@
           resultsEl.appendChild(ul);
         }
 
-        function doSearch(q) {
+        function doSearch(q, category) {
           if (!q || q.length < 3) {
             renderResults([], q);
             serverHeading.style.display = '';
             return;
           }
           serverHeading.style.display = 'none';
-          fetch('/api/search/?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
+          let url = '/api/search/?q=' + encodeURIComponent(q);
+          if (category) {
+            url += '&category=' + encodeURIComponent(category);
+          }
+          const extraParams = collectExtraFilterParams();
+          const extraQuery = extraParams.toString();
+          if (extraQuery) {
+            url += '&' + extraQuery;
+          }
+          fetch(url, {headers: {'Accept': 'application/json'}})
             .then(r => r.json())
             .then(data => {
               if (data && Array.isArray(data.results)) {
@@ -94,12 +204,27 @@
 
         input.addEventListener('input', function(e){
           const q = (e.target.value || '').trim();
+          const category = (categorySelect && categorySelect.value || '').trim();
           if (timer) clearTimeout(timer);
-          timer = setTimeout(() => doSearch(q), 200);
+          timer = setTimeout(() => doSearch(q, category), 200);
+        });
+
+        categorySelect.addEventListener('change', function(e){
+          const category = (e.target.value || '').trim();
+          Object.keys(selectedFilters).forEach(k => { selectedFilters[k] = ''; });
+          renderExtraFilters(category);
+          const q = (input.value || '').trim();
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => doSearch(q, category), 100);
         });
 
         // initial load: perform search if page has initial query
-        (function(){ const q = (input.value||'').trim(); if (q.length>=3) doSearch(q); })();
+        (function(){
+          const q = (input.value || '').trim();
+          const category = (categorySelect && categorySelect.value || '').trim();
+          renderExtraFilters(category);
+          if (q.length >= 3) doSearch(q, category);
+        })();
       })();
 
       // read CSRF token from cookies (Django default)

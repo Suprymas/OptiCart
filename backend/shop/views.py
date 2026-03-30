@@ -3,7 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
-from .search import search_products, has_search_results
+from .search import (
+    search_products,
+    has_search_results,
+    CATEGORY_OPTIONS,
+    FILTER_UI_SCHEMA,
+    get_selected_filters,
+)
 from .comparison import compare_basket_prices
 from .models import BasketItem, Product, PriceHistory
 from .services import compare_template_prices, _get_price_at_date
@@ -16,7 +22,9 @@ from django.shortcuts import get_object_or_404
 
 def search_view(request):
     query = request.GET.get('q', '')
-    results_qs = search_products(query)
+    category = request.GET.get('category', '')
+    selected_filters = get_selected_filters(request.GET)
+    results_qs = search_products(query, category, selected_filters)
     no_results = query != '' and not has_search_results(results_qs)
 
     # prepare results list and attach current cart quantity (aggregated by product name)
@@ -63,6 +71,10 @@ def search_view(request):
     return render(request, 'shop/search_results.html', {
         'groups': groups,
         'query': query,
+        'selected_category': category,
+        'selected_filters': selected_filters,
+        'filter_ui_schema': FILTER_UI_SCHEMA,
+        'category_options': CATEGORY_OPTIONS,
         'no_results': no_results,
         'cart': sess_cart,
     })
@@ -200,7 +212,9 @@ def demo_chart_data(request):
 def search_api(request):
     """Return JSON list of matching product groups for client-side live search."""
     q = request.GET.get('q', '')
-    results_qs = search_products(q)
+    category = request.GET.get('category', '')
+    selected_filters = get_selected_filters(request.GET)
+    results_qs = search_products(q, category, selected_filters)
 
     # build unique-name groups (name + representative id)
     groups = []
@@ -212,7 +226,13 @@ def search_api(request):
         seen.add(name)
         groups.append({'name': name, 'rep_id': getattr(p, 'id', None)})
 
-    return JsonResponse({'query': q, 'results': groups, 'no_results': q != '' and len(groups) == 0})
+    return JsonResponse({
+        'query': q,
+        'category': category,
+        'selected_filters': selected_filters,
+        'results': groups,
+        'no_results': q != '' and len(groups) == 0,
+    })
 
 
 def product_detail(request, product_id: int):
