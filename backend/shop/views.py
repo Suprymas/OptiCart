@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.db.models import Prefetch
 
 from .search import (
     search_products,
@@ -18,6 +19,92 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
+
+
+def home_view(request):
+    """Display all comparable products with their prices from both stores, with search support."""
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    selected_filters = get_selected_filters(request.GET)
+    
+    # If search query is provided, use search, otherwise show all
+    if query and len(query) >= 3:
+        results_qs = search_products(query, category, selected_filters)
+        groups_data = list(results_qs)
+    else:
+        # Get all unique product names
+        unique_products = Product.objects.values('name').distinct()
+        groups_data = []
+        for prod_dict in unique_products:
+            name = prod_dict['name']
+            stores = list(Product.objects.filter(name=name).order_by('store'))
+            if len(stores) == 2:
+                groups_data.append({
+                    'name': name,
+                    'id': stores[0].id,
+                    'image_url': stores[0].image_url or stores[1].image_url,
+                })
+    
+    # Build product groups with both store prices
+    groups = []
+    seen_names = set()
+    for item in groups_data:
+        # Handle both Product objects and dictionaries
+        name = item.name if hasattr(item, 'name') else item.get('name', '')
+        if not name or name in seen_names:
+            continue
+        seen_names.add(name)
+        
+        stores = list(Product.objects.filter(name=name).order_by('store'))
+        if len(stores) == 2:
+            image_url = None
+            if hasattr(item, 'image_url'):
+                image_url = item.image_url
+            elif isinstance(item, dict) and 'image_url' in item:
+                image_url = item.get('image_url')
+            else:
+                image_url = stores[0].image_url or stores[1].image_url
+            
+            groups.append({
+                'name': name,
+                'stores': stores,
+                'rep_id': stores[0].id,
+                'image_url': image_url,
+            })
+    
+    # Session cart map
+    sess_cart = request.session.get('cart', {})
+    name_qty = {}
+    if sess_cart:
+        for key, val in sess_cart.items():
+            try:
+                pid = int(key)
+                try:
+                    prod = Product.objects.get(pk=pid)
+                    name = prod.name
+                except Exception:
+                    name = str(key)
+            except Exception:
+                name = str(key)
+            try:
+                qty = int(val or 0)
+            except Exception:
+                qty = 0
+            name_qty[name] = name_qty.get(name, 0) + qty
+    
+    # Attach cart quantities to groups
+    for group in groups:
+        group['in_cart_qty'] = int(name_qty.get(group['name'], 0)) if name_qty.get(group['name'], 0) > 0 else 0
+    
+    return render(request, 'shop/home.html', {
+        'groups': groups,
+        'cart': sess_cart,
+        'query': query,
+        'selected_category': category,
+        'selected_filters': selected_filters,
+        'filter_ui_schema': FILTER_UI_SCHEMA,
+        'category_options': CATEGORY_OPTIONS,
+    })
 
 
 def search_view(request):
@@ -66,6 +153,7 @@ def search_view(request):
                 'stores': [p],
                 'in_cart_qty': int(name_qty.get(pname, 0)) if name_qty.get(pname, 0) > 0 else 0,
                 'rep_id': getattr(p, 'id', None),
+                'image_url': p.image_url if hasattr(p, 'image_url') and p.image_url else None,
             })
 
     return render(request, 'shop/search_results.html', {
@@ -85,6 +173,57 @@ def basket_comparison(request):
     basket_items = BasketItem.objects.filter(user=request.user)
     comparison = compare_basket_prices(basket_items)
     return render(request, 'shop/comparison.html', {'comparison': comparison})
+
+
+def product_compare(request, product_name):
+    """Display product comparison page with image and prices - only cheapest option."""
+    from decimal import Decimal
+    
+    # Get all products with this name
+    products = Product.objects.filter(name=product_name).order_by('store')
+    
+    if not products.exists():
+        return render(request, 'shop/product_not_found.html', {'product_name': product_name})
+    
+    # Get image from the first product that has one
+    image_url = None
+    for p in products:
+        if p.image_url:
+            image_url = p.image_url
+            break
+    
+    # Find the cheapest product and price difference
+    cheapest_product = None
+    price_difference = Decimal('0')
+    other_price = None
+    
+    products_list = list(products)
+    
+    if len(products_list) == 2:
+        if products_list[0].price <= products_list[1].price:
+            cheapest_product = products_list[0]
+            other_price = products_list[1].price
+        else:
+            cheapest_product = products_list[1]
+            other_price = products_list[0].price
+        
+        price_difference = abs(other_price - cheapest_product.price)
+    else:
+        # If only one product exists, use it
+        cheapest_product = products_list[0] if products_list else None
+    
+    # Session cart
+    sess_cart = request.session.get('cart', {})
+    
+    return render(request, 'shop/product_compare.html', {
+        'product_name': product_name,
+        'all_products': products_list,
+        'cheapest_product': cheapest_product,
+        'image_url': image_url,
+        'cart': sess_cart,
+        'price_difference': price_difference,
+        'has_comparison': len(products_list) == 2,
+    })
 
 
 @require_http_methods(["GET"])
@@ -214,9 +353,33 @@ def search_api(request):
     q = request.GET.get('q', '')
     category = request.GET.get('category', '')
     selected_filters = get_selected_filters(request.GET)
+    q_normalized = (q or '').strip()
+
+    if not q_normalized:
+        # Return all comparable products (available in both stores) for clear-search restore.
+        groups = []
+        for name in Product.objects.values_list('name', flat=True).distinct():
+            stores = list(Product.objects.filter(name=name).order_by('store'))
+            if len(stores) != 2:
+                continue
+            image_url = stores[0].image_url or stores[1].image_url
+            groups.append({
+                'name': name,
+                'rep_id': stores[0].id,
+                'image_url': image_url,
+            })
+
+        return JsonResponse({
+            'query': q,
+            'category': category,
+            'selected_filters': selected_filters,
+            'results': groups,
+            'no_results': False,
+        })
+
     results_qs = search_products(q, category, selected_filters)
 
-    # build unique-name groups (name + representative id)
+    # build unique-name groups (name + representative id + image_url)
     groups = []
     seen = set()
     for p in results_qs:
@@ -224,7 +387,12 @@ def search_api(request):
         if name in seen:
             continue
         seen.add(name)
-        groups.append({'name': name, 'rep_id': getattr(p, 'id', None)})
+        image_url = p.image_url if hasattr(p, 'image_url') and p.image_url else None
+        groups.append({
+            'name': name,
+            'rep_id': getattr(p, 'id', None),
+            'image_url': image_url,
+        })
 
     return JsonResponse({
         'query': q,
