@@ -1,5 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Prefetch
@@ -15,12 +16,11 @@ from .comparison import compare_basket_prices
 from .models import BasketItem, Product, PriceHistory
 from .services import compare_template_prices, _get_price_at_date
 from django.db import DatabaseError
-from django.shortcuts import redirect
-from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 
 
+@login_required(login_url='shop:login')
 def home_view(request):
     """Display all comparable products with their prices from both stores, with search support."""
     query = request.GET.get('q', '')
@@ -107,6 +107,7 @@ def home_view(request):
     })
 
 
+@login_required(login_url='shop:login')
 def search_view(request):
     query = request.GET.get('q', '')
     category = request.GET.get('category', '')
@@ -175,6 +176,7 @@ def basket_comparison(request):
     return render(request, 'shop/comparison.html', {'comparison': comparison})
 
 
+@login_required(login_url='shop:login')
 def product_compare(request, product_name):
     """Display product comparison page with image and prices - only cheapest option."""
     from decimal import Decimal
@@ -403,6 +405,7 @@ def search_api(request):
     })
 
 
+@login_required(login_url='shop:login')
 def product_detail(request, product_id: int):
     """Render product detail using the same product-group UI as search results.
 
@@ -447,6 +450,7 @@ def product_detail(request, product_id: int):
     })
 
 
+@login_required(login_url='shop:login')
 @require_http_methods(["POST"])
 def add_to_cart(request):
     """Add a product to session cart.
@@ -519,3 +523,32 @@ def add_to_cart(request):
 
     action = 'updated' if existed else 'added'
     return JsonResponse({'success': True, 'product_id': pid, 'quantity': new_qty, 'action': action})
+
+
+def login_view(request):
+    """Handle user login."""
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            # Redirect to next page or home
+            next_page = request.GET.get('next', '')
+            if next_page:
+                return redirect(next_page)
+            return redirect('shop:home')
+        else:
+            # Authentication failed
+            return render(request, 'shop/login.html', {
+                'error': 'Neteisingas naudotojo vardas arba slaptažodis.'
+            })
+    
+    return render(request, 'shop/login.html')
+
+
+def logout_view(request):
+    """Handle user logout."""
+    logout(request)
+    return redirect('shop:home')
