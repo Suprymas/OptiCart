@@ -31,6 +31,13 @@ PY
 
 python manage.py migrate --noinput
 
+if [ -f /app/backend/shop/fixtures/initial_data.json ]; then
+    SHOULD_LOAD_FIXTURE=$(python manage.py shell -c "from shop.models import Product; print('yes' if Product.objects.count() == 0 else 'no')" | tail -n 1)
+    if [ "$SHOULD_LOAD_FIXTURE" = "yes" ]; then
+        python manage.py loaddata /app/backend/shop/fixtures/initial_data.json
+    fi
+fi
+
 if [ -f /app/product_images.txt ]; then
     python manage.py update_product_images --file /app/product_images.txt || true
 fi
