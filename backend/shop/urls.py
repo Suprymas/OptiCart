@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import home_view, search_view, basket_comparison, template_compare, demo_save_template, demo_chart_data, add_to_cart, search_api, product_detail, product_compare
+from .views import home_view, search_view, basket_comparison, template_compare, demo_save_template, demo_chart_data, add_to_cart, search_api, product_detail, product_compare, login_view, logout_view
 
 app_name = 'shop'
 
@@ -15,4 +15,6 @@ urlpatterns = [
     path('compare/demo/chart-data/', demo_chart_data, name='compare_demo_chart'),
     path('template/<int:template_id>/compare/', template_compare, name='template_compare'),
     path('add-to-cart/', add_to_cart, name='add_to_cart'),
+    path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
 ]

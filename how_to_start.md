@@ -73,13 +73,34 @@ Check web logs if needed:
 docker compose logs -f web
 ```
 
-## 6. Open the app
+## 6. Create initial admin user
+
+Before you can access the app, you need to create the admin user. Run:
+
+```bash
+docker compose exec web python manage.py create_admin_user
+```
+
+Or use the setup script:
+
+```bash
+docker compose exec web python setup.py
+```
+
+**Default Login Credentials:**
+- Username: `admin`
+- Email: `admin@example.com`
+- Password: `admin123`
+
+## 7. Open the app
 
 Open in browser:
 
 - http://localhost:8000
 
-## 7. Product images are applied automatically
+You will be redirected to the login page. Use the credentials above to login.
+
+## 8. Product images are applied automatically
 
 On container startup, the app automatically runs:
 
@@ -94,7 +115,7 @@ Manual fallback (if needed):
 docker compose exec web python manage.py update_product_images --file product_images.txt
 ```
 
-## 8. Useful commands
+## 9. Useful commands
 
 Stop containers:
 
@@ -120,13 +141,19 @@ Run migrations manually:
 docker compose exec web python manage.py migrate
 ```
 
+Create admin user:
+
+```bash
+docker compose exec web python manage.py create_admin_user
+```
+
 Open Django shell:
 
 ```bash
 docker compose exec web python manage.py shell
 ```
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 Port 8000 already in use:
 
