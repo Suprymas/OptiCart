@@ -1,0 +1,31 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Produktas nerastas - OptiCart{% endblock %}
+
+{% block content %}
+  <section class="card stack">
+    <a href="{% url 'shop:home' %}" class="back-link">← Grįžti į pagrindinį</a>
+    
+    <div style="text-align: center; padding: 40px 0;">
+      <h1 style="font-size: 2rem;">😕 Produktas nerastas</h1>
+      <p style="font-size: 1.1rem; color: var(--text-soft); margin-top: 20px;">
+        Produktas "<strong>{{ product_name }}</strong>" nėra prieinamas palyginimui.
+      </p>
+      <a href="{% url 'shop:home' %}" style="
+        display: inline-block;
+        margin-top: 30px;
+        padding: 12px 24px;
+        background: var(--brand);
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      "
+      onmouseover="this.style.background='#115070'; this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.background='var(--brand)'; this.style.transform='translateY(0)'"
+      >
+        Grįžti į pagrindinį
+      </a>
+    </div>
+  </section>
+{% endblock %}

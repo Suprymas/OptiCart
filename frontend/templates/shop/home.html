@@ -1,11 +1,14 @@
 {% extends 'shop/base.html' %}
+{% load static %}
 
-{% block title %}Paieskos rezultatai{% endblock %}
+{% block title %}OptiCart - Prekių palyginimas{% endblock %}
 
 {% block content %}
   <section class="card stack">
-    <h1>Paieska</h1>
+    <h1>Palyginite prekių kainas tarp parduotuvių</h1>
+    <p class="subtitle">Rinkitės pigiausias prekes iš „Barbora" ir „Rimi"</p>
 
+    <!-- Search Controls -->
     <div class="search-controls">
       <input id="live-search" class="search-box" type="search" placeholder="Iveskite preke (min. 3 simboliai)..." value="{{ query }}" />
       <select id="category-filter" class="category-select" aria-label="Kategorijos filtras">
@@ -19,46 +22,40 @@
     {{ filter_ui_schema|json_script:"filter-ui-schema" }}
     {{ selected_filters|json_script:"selected-filters" }}
 
-    <h2 id="live-heading" style="display:none;">Rezultatai:</h2>
-    <div id="live-results"></div>
-
-    <h3 id="server-heading" style="display:none;">Paieska: "{{ query }}"</h3>
-
-    {% if no_results %}
-    <p class="no-results">
-      Pagal uzklausa "{{ query }}" rezultatu nerasta. Pabandykite kita paieskos
-      zodi.
-    </p>
-    {% else %}
-    <div class="stack">
+    {% if groups %}
+    <div class="products-grid" id="products-grid">
       {% for group in groups %}
-      <a href="{% url 'shop:product_compare' group.name %}?from=search" class="search-result-link">
-        <div class="search-result-item">
-          {% if group.image_url %}
-            <img src="{{ group.image_url }}" alt="{{ group.name }}" class="search-result-image">
-          {% endif %}
-          <div class="search-result-text">
-            <h3>{{ group.name }} {% if group.in_cart_qty > 0 %}<small class="subtle">(krepselyje: {{ group.in_cart_qty }})</small>{% endif %}</h3>
-            <ul class="clean">
-              {% for p in group.stores %}
-              <li>{{ p.store|title }} - {{ p.price }} EUR</li>
-              {% endfor %}
-            </ul>
+      <a href="{% url 'shop:product_compare' group.name %}?from=home{% if query %}&q={{ query|urlencode }}{% endif %}" class="product-card-link">
+        <div class="product-card-home">
+          <div class="product-image-wrapper">
+            {% if group.image_url %}
+              <img src="{{ group.image_url }}" alt="{{ group.name }}" class="product-image" onerror="this.src='{% static 'shop/placeholder.svg' %}'">
+            {% else %}
+              <div class="product-image-placeholder">
+                <span>📦</span>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="product-info-home">
+            <h3>{{ group.name }}</h3>
           </div>
         </div>
       </a>
       {% endfor %}
     </div>
 
+    {% else %}
+    <p class="no-results">Nėra prieinamų prekių palyginimui.</p>
+    {% endif %}
+
     <script>
-      // Live search logic: query API when >=3 chars and update list
+      // Live search logic: query API when >=3 chars and update grid
       (function(){
         const input = document.getElementById('live-search');
         const categorySelect = document.getElementById('category-filter');
         const extraFiltersEl = document.getElementById('extra-filters');
-        const resultsEl = document.getElementById('live-results');
-        const liveHeading = document.getElementById('live-heading');
-        const serverHeading = document.getElementById('server-heading');
+        const gridEl = document.getElementById('products-grid');
         const filterSchema = JSON.parse(document.getElementById('filter-ui-schema').textContent || '{}');
         const selectedFilters = JSON.parse(document.getElementById('selected-filters').textContent || '{}');
         let timer = null;
@@ -151,52 +148,76 @@
           return params;
         }
 
-        function renderResults(list, query) {
-          resultsEl.innerHTML = '';
+        function renderResults(list) {
+          gridEl.innerHTML = '';
           if (!list || list.length === 0) {
-            liveHeading.style.display = 'none';
+            gridEl.innerHTML = '<p class="no-results">Nėra prekių, atitinkančių jūsų paiešką</p>';
             return;
           }
-          liveHeading.style.display = '';
-          const div = document.createElement('div');
-          div.className = 'stack';
-          list.forEach(it => {
-            const a = document.createElement('a');
-            a.href = '/product/' + encodeURIComponent(it.name) + '/compare/?from=search';
-            a.className = 'search-result-link';
-            
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'search-result-item';
-            
-            if (it.image_url) {
-              const img = document.createElement('img');
-              img.src = it.image_url;
-              img.alt = it.name;
-              img.className = 'search-result-image';
-              itemDiv.appendChild(img);
+          list.forEach(product => {
+            const q = (input.value || '').trim();
+            let href = '/product/' + encodeURIComponent(product.name) + '/compare/?from=home';
+            if (q) {
+              href += '&q=' + encodeURIComponent(q);
             }
             
-            const textDiv = document.createElement('div');
-            textDiv.className = 'search-result-text';
+            const link = document.createElement('a');
+            link.href = href;
+            link.className = 'product-card-link';
             
-            const h3 = document.createElement('h3');
-            h3.textContent = it.name;
-            textDiv.appendChild(h3);
+            const card = document.createElement('div');
+            card.className = 'product-card-home';
             
-            itemDiv.appendChild(textDiv);
-            a.appendChild(itemDiv);
-            div.appendChild(a);
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'product-image-wrapper';
+            
+            if (product.image_url) {
+              const img = document.createElement('img');
+              img.src = product.image_url;
+              img.alt = product.name;
+              img.className = 'product-image';
+              img.onerror = function() { this.src = '/static/shop/placeholder.svg'; };
+              imgWrapper.appendChild(img);
+            } else {
+              const placeholder = document.createElement('div');
+              placeholder.className = 'product-image-placeholder';
+              placeholder.innerHTML = '<span>📦</span>';
+              imgWrapper.appendChild(placeholder);
+            }
+            
+            const info = document.createElement('div');
+            info.className = 'product-info-home';
+            const heading = document.createElement('h3');
+            heading.textContent = product.name;
+            info.appendChild(heading);
+            
+            card.appendChild(imgWrapper);
+            card.appendChild(info);
+            link.appendChild(card);
+            gridEl.appendChild(link);
           });
-          resultsEl.appendChild(div);
         }
 
         function doSearch(q, category) {
-          if (!q || q.length < 3) {
-            renderResults([], q);
-            serverHeading.style.display = '';
+          if (!q) {
+            let url = '/api/search/?q=';
+            if (category) {
+              url += '&category=' + encodeURIComponent(category);
+            }
+            fetch(url, {headers: {'Accept': 'application/json'}})
+              .then(r => r.json())
+              .then(data => {
+                if (data && Array.isArray(data.results)) {
+                  renderResults(data.results);
+                }
+              }).catch(err => { console.error('search error', err); });
             return;
           }
-          serverHeading.style.display = 'none';
+
+          if (q.length < 3) {
+            return;
+          }
+
           let url = '/api/search/?q=' + encodeURIComponent(q);
           if (category) {
             url += '&category=' + encodeURIComponent(category);
@@ -210,12 +231,7 @@
             .then(r => r.json())
             .then(data => {
               if (data && Array.isArray(data.results)) {
-                if (data.results.length === 0) {
-                  resultsEl.innerHTML = '<p class="no-results">Ieskomos prekes nerasta</p>';
-                  liveHeading.style.display = '';
-                } else {
-                  renderResults(data.results, q);
-                }
+                renderResults(data.results);
               }
             }).catch(err => { console.error('search error', err); });
         }
@@ -223,8 +239,15 @@
         input.addEventListener('input', function(e){
           const q = (e.target.value || '').trim();
           const category = (categorySelect && categorySelect.value || '').trim();
+          
           if (timer) clearTimeout(timer);
-          timer = setTimeout(() => doSearch(q, category), 200);
+          
+          if (q.length >= 3) {
+            timer = setTimeout(() => doSearch(q, category), 200);
+          } else if (q.length === 0) {
+            // Clear search - show all without page reload
+            timer = setTimeout(() => doSearch('', category), 100);
+          }
         });
 
         categorySelect.addEventListener('change', function(e){
@@ -236,27 +259,19 @@
           timer = setTimeout(() => doSearch(q, category), 100);
         });
 
-        // initial load: perform search if page has initial query
+        // Initial load: set filters and restore search from URL if present.
         (function(){
-          const q = (input.value || '').trim();
           const category = (categorySelect && categorySelect.value || '').trim();
           renderExtraFilters(category);
-          if (q.length >= 3) doSearch(q, category);
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const q = (urlParams.get('q') || '').trim();
+          if (q.length >= 3) {
+            input.value = q;
+            doSearch(q, category);
+          }
         })();
       })();
-
-      // read CSRF token from cookies (Django default)
-      function getCookie(name) {
-        const cookies = document.cookie ? document.cookie.split(';') : [];
-        for (let i = 0; i < cookies.length; i++) {
-          const c = cookies[i].trim();
-          if (c.startsWith(name + '=')) return decodeURIComponent(c.substring(name.length + 1));
-        }
-        return null;
-      }
     </script>
-    {% endif %}
-
-    <p><a href="/">Grizti atgal</a></p>
   </section>
 {% endblock %}

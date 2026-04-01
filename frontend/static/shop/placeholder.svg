@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <defs>
+    <style>
+      .placeholder-bg { fill: #f0f2ea; }
+      .placeholder-icon { fill: #999; }
+      .placeholder-text { fill: #666; font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; }
+    </style>
+  </defs>
+  <rect class="placeholder-bg" width="300" height="300"/>
+  <text class="placeholder-icon" x="150" y="120" font-size="60">📦</text>
+  <text class="placeholder-text" x="150" y="180">No Image</text>
+  <text class="placeholder-text" x="150" y="200" font-size="12">Available</text>
+</svg>

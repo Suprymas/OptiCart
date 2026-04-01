@@ -1,0 +1,135 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}{{ product_name }} - OptiCart{% endblock %}
+
+{% block content %}
+  <section class="card stack">
+    {% if request.GET.from == 'search' %}
+      <a href="{% url 'shop:search' %}" class="back-link">← Grįžti į paiešką</a>
+    {% else %}
+      <a href="{% url 'shop:home' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="back-link">← Grįžti į pagrindinį</a>
+    {% endif %}
+
+    <div class="product-compare-container">
+      <!-- Left: Image + Savings Info -->
+      <div class="product-compare-left">
+        <!-- Savings Box (only if comparing 2 products) -->
+        {% if has_comparison and price_difference > 0 %}
+          <div class="savings-box-top">
+            <p class="savings-text">Pigiausias: <strong>{{ cheapest_product.store|title }}</strong></p>
+            <p class="savings-amount">Sutaupysi: <strong>{{ price_difference|floatformat:2 }}€</strong></p>
+          </div>
+        {% elif has_comparison %}
+          <div class="equal-price-box-top">
+            <p>Vienoda kaina</p>
+          </div>
+        {% endif %}
+
+        <!-- Product Image -->
+        <div class="product-compare-image">
+          {% if image_url %}
+            <img src="{{ image_url }}" alt="{{ product_name }}" class="product-image-large" onerror="this.src='{% static 'shop/placeholder.svg' %}'">
+          {% else %}
+            <div class="product-image-placeholder-large">
+              <span>📦</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right: Product Info and Prices -->
+      <div class="product-compare-info">
+        <h1>{{ product_name }}</h1>
+
+        {% if all_products %}
+          <!-- Add to cart controls (between name and prices) -->
+          <div class="add-to-cart-container">
+            <div class="add-to-cart-section">
+              <div class="qty-controls">
+                <button class="qty-decr" id="qty-decr-btn">−</button>
+                <span class="qty" id="qty-display" data-value="1">1</span>
+                <button class="qty-incr" id="qty-incr-btn">+</button>
+              </div>
+              <button class="add-btn" id="add-to-cart-btn" data-product-id="{{ cheapest_product.id }}" data-product-name="{{ product_name }}">Prideti į krepšį</button>
+            </div>
+          </div>
+
+          <!-- Show all store prices -->
+          <div class="comparison-table">
+            {% for product in all_products %}
+              <div class="store-comparison-row">
+                <div class="store-header">
+                  <h3>{{ product.store|title }}</h3>
+                </div>
+                <div class="store-details">
+                  <div class="price-display">
+                    <span class="price-label">Kaina:</span>
+                    <span class="price-value">{{ product.price }}€</span>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="no-results">Produktas nerastas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Single product add to cart
+    (function() {
+      const qtyDecrBtn = document.getElementById('qty-decr-btn');
+      const qtyIncrBtn = document.getElementById('qty-incr-btn');
+      const addBtn = document.getElementById('add-to-cart-btn');
+      const qtyDisplay = document.getElementById('qty-display');
+
+      // Quantity controls
+      qtyDecrBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        let qty = parseInt(qtyDisplay.dataset.value) || 1;
+        if (qty > 1) qty--;
+        qtyDisplay.textContent = qty;
+        qtyDisplay.dataset.value = qty;
+      });
+
+      qtyIncrBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        let qty = parseInt(qtyDisplay.dataset.value) || 1;
+        if (qty < 10) qty++;
+        qtyDisplay.textContent = qty;
+        qtyDisplay.dataset.value = qty;
+      });
+
+      // Add to cart (only cheapest product)
+      addBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const productId = addBtn.dataset.productId;
+        const qty = parseInt(qtyDisplay.dataset.value) || 1;
+
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('quantity', qty);
+
+        try {
+          const response = await fetch('{% url "shop:add_to_cart" %}', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await response.json();
+          if (data.success) {
+            addBtn.textContent = 'Prideta! ✓';
+            setTimeout(() => {
+              addBtn.textContent = 'Prideti į krepšį';
+            }, 2000);
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+          alert('Klaida pridedant prekę');
+        }
+      });
+    })();
+  </script>
+{% endblock %}
