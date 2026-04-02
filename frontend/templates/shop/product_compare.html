@@ -109,14 +109,26 @@
         const productId = addBtn.dataset.productId;
         const qty = parseInt(qtyDisplay.dataset.value) || 1;
 
-        const formData = new FormData();
-        formData.append('product_id', productId);
-        formData.append('quantity', qty);
+        // Get CSRF token from cookie
+        function getCookie(name) {
+          const cookies = document.cookie ? document.cookie.split(';') : [];
+          for (let i = 0; i < cookies.length; i++) {
+            const c = cookies[i].trim();
+            if (c.startsWith(name + '=')) return decodeURIComponent(c.substring(name.length + 1));
+          }
+          return null;
+        }
+
+        const csrftoken = getCookie('csrftoken');
 
         try {
           const response = await fetch('{% url "shop:add_to_cart" %}', {
             method: 'POST',
-            body: formData,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrftoken || ''
+            },
+            body: JSON.stringify({product_id: productId, quantity: qty})
           });
           const data = await response.json();
           if (data.success) {

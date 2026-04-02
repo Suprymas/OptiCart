@@ -1,0 +1,482 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Krepšelis - OptiCart{% endblock %}
+
+{% block head_extra %}
+<style>
+  .basket-container {
+    max-width: 1000px;
+    margin: 20px auto;
+  }
+
+  .basket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .basket-header h1 {
+    margin: 0;
+    font-size: 32px;
+  }
+
+  .basket-stats {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .basket-items {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .basket-item {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .basket-item-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #f5f5f5;
+  }
+
+  .basket-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .basket-item-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+  }
+
+  .basket-item-quantity {
+    color: #666;
+    font-size: 14px;
+  }
+
+  .basket-item-stores {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+  }
+
+  .store-price {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .store-price-label {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .store-price-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4CAF50;
+  }
+
+  .store-price.unavailable .store-price-value {
+    color: #ccc;
+  }
+
+  .basket-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .remove-btn {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+  }
+
+  .remove-btn:hover {
+    background-color: #ff5252;
+  }
+
+  .empty-basket {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .empty-basket h2 {
+    color: #999;
+    margin-bottom: 20px;
+  }
+
+  .empty-basket p {
+    color: #bbb;
+    margin-bottom: 30px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+  }
+
+  .action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+
+  .action-btn.primary {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .action-btn.primary:hover {
+    background-color: #45a049;
+  }
+
+  .action-btn.secondary {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  .action-btn.secondary:hover {
+    background-color: #e0e0e0;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+  }
+
+  .modal-close:hover {
+    color: #333;
+  }
+
+  .modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .modal-form input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  .modal-form input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  }
+
+  .modal-form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .modal-form-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s;
+  }
+
+  .modal-form-buttons .btn-save {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .modal-form-buttons .btn-save:hover {
+    background-color: #45a049;
+  }
+
+  .modal-form-buttons .btn-cancel {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  .modal-form-buttons .btn-cancel:hover {
+    background-color: #e0e0e0;
+  }
+
+  @media (max-width: 768px) {
+    .basket-item {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+
+    .basket-item-actions {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .basket-header {
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="basket-container">
+  <div class="basket-header">
+    <h1>Jūsų krepšelis</h1>
+    {% if not empty %}
+    <div class="basket-stats">
+      {{ total_items }} prekė{{ total_items|pluralize:"s" }}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if empty %}
+  <div class="empty-basket">
+    <h2>Jūsų krepšelis tuščias</h2>
+    <p>Pradėkite paiešką ir pridėkite prekes į krepšelį</p>
+    <a href="{% url 'shop:search' %}" class="action-btn primary">Ieškoti prekių</a>
+  </div>
+  {% else %}
+  <div class="basket-items">
+    {% for item in items %}
+    <div class="basket-item">
+      <img 
+        src="{{ item.image_url }}" 
+        alt="{{ item.name }}" 
+        class="basket-item-image"
+        onerror="this.src='{% static 'shop/placeholder.svg' %}'"
+      />
+      
+      <div class="basket-item-details">
+        <h3 class="basket-item-name">{{ item.name }}</h3>
+        <div class="basket-item-quantity">
+          Kiekis: <strong>{{ item.quantity }}</strong>
+        </div>
+        
+        <div class="basket-item-stores">
+          {% for store in item.stores %}
+          <div class="store-price {% if not store.price %}unavailable{% endif %}">
+            <div class="store-price-label">{{ store.store }}</div>
+            <div class="store-price-value">
+              {% if store.price %}
+                {{ store.price }} EUR
+              {% else %}
+                Nėra
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div class="basket-item-actions">
+        <div style="font-weight: 600; color: #333;">
+          {% if item.stores.0.price %}
+            {% widthratio item.stores.0.price item.quantity item.quantity %}
+            {{ item.stores.0.price|floatformat:2 }} EUR × {{ item.quantity }}
+          {% endif %}
+        </div>
+        <button class="remove-btn" onclick="removeFromBasket('{{ item.name }}')">
+          Pašalinti
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions">
+    <a href="{% url 'shop:search' %}" class="action-btn secondary">← Tęsti apsipirkimą</a>
+    <button onclick="openSaveTemplateModal()" class="action-btn primary" style="background-color: #FF9800;">💾 Išsaugoti šabloną</button>
+    <a href="{% url 'shop:compare' %}" class="action-btn primary">Palyginti kainas →</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Save Template Modal -->
+<div id="saveTemplateModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Išsaugoti šabloną</h2>
+      <button class="modal-close" onclick="closeSaveTemplateModal()">×</button>
+    </div>
+    <form class="modal-form" onsubmit="saveBasketAsTemplate(event)">
+      <div>
+        <label for="templateName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Šablono pavadinimas</label>
+        <input type="text" id="templateName" name="template_name" placeholder="pvz. Savaitės pirkiniai" required />
+      </div>
+      <div class="modal-form-buttons">
+        <button type="submit" class="btn-save">Išsaugoti</button>
+        <button type="button" class="btn-cancel" onclick="closeSaveTemplateModal()">Atšaukti</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openSaveTemplateModal() {
+    document.getElementById('saveTemplateModal').classList.add('active');
+    document.getElementById('templateName').focus();
+  }
+
+  function closeSaveTemplateModal() {
+    document.getElementById('saveTemplateModal').classList.remove('active');
+  }
+
+  function saveBasketAsTemplate(event) {
+    event.preventDefault();
+    
+    const templateName = document.getElementById('templateName').value.trim();
+    
+    if (!templateName) {
+      alert('Prašome įvesti šablono pavadinimą');
+      return;
+    }
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch('{% url "shop:save_basket_as_template" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ template_name: templateName })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        closeSaveTemplateModal();
+        alert('Šablonas „' + data.template_name + '" sėkmingai išsaugotas!');
+        document.getElementById('templateName').value = '';
+      } else {
+        alert('Nepavyko išsaugoti šablono: ' + (data.error || 'Nežinoma klaida'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Nepavyko išsaugoti šablono. Bandykite dar kartą.');
+    });
+  }
+
+  function removeFromBasket(productName) {
+    if (confirm('Ar tikrai norite pašalinti šią prekę iš krepšelio?')) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                        document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+      
+      fetch('{% url "shop:remove_from_basket" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ product_name: productName })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Nepavyko pašalinti prekės: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Nepavyko pašalinti prekės. Bandykite dar kartą.');
+      });
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Šablonai - OptiCart{% endblock %}
+
+{% block head_extra %}
+<style>
+  .templates-container {
+    max-width: 1000px;
+    margin: 20px auto;
+  }
+
+  .templates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .templates-header h1 {
+    margin: 0;
+    font-size: 32px;
+  }
+
+  .templates-header-stats {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .templates-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .template-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .template-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .template-card-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .template-card-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+  }
+
+  .template-items-count {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .template-items-count strong {
+    color: #333;
+    font-size: 16px;
+  }
+
+  .template-card-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .template-card-actions button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background-color 0.3s;
+  }
+
+  .btn-load {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .btn-load:hover {
+    background-color: #45a049;
+  }
+
+  .btn-delete {
+    background-color: #ff6b6b;
+    color: white;
+  }
+
+  .btn-delete:hover {
+    background-color: #ff5252;
+  }
+
+  .empty-templates {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .empty-templates h2 {
+    color: #999;
+    margin-bottom: 20px;
+  }
+
+  .empty-templates p {
+    color: #bbb;
+    margin-bottom: 30px;
+  }
+
+  .empty-templates-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+
+  .action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .action-btn.primary {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .action-btn.primary:hover {
+    background-color: #45a049;
+  }
+
+  .action-btn.secondary {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  .action-btn.secondary:hover {
+    background-color: #e0e0e0;
+  }
+
+  .actions-bottom {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+  }
+
+  @media (max-width: 768px) {
+    .templates-list {
+      grid-template-columns: 1fr;
+    }
+
+    .templates-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .template-card-actions {
+      flex-direction: column;
+    }
+
+    .template-card-actions button {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="templates-container">
+  <div class="templates-header">
+    <h1>Išsaugoti šablonai</h1>
+    {% if not empty %}
+    <div class="templates-header-stats">
+      {{ templates|length }} šablon{{ templates|length|pluralize:"ai" }}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if empty %}
+  <div class="empty-templates">
+    <div class="empty-templates-icon">📋</div>
+    <h2>Nėra išsaugotų šablonų</h2>
+    <p>Pridėkite prekes į krepšelį ir išsaugokite juos kaip šabloną</p>
+    <a href="{% url 'shop:basket' %}" class="action-btn primary">Į krepšelį</a>
+  </div>
+  {% else %}
+  <div class="templates-list">
+    {% for template_data in templates %}
+    <div class="template-card">
+      <h3 class="template-card-name">{{ template_data.name }}</h3>
+      
+      <div class="template-card-info">
+        <div class="template-items-count">
+          <strong>{{ template_data.items_count }}</strong> preke{{ template_data.items_count|pluralize:"s" }}
+        </div>
+      </div>
+      
+      <div class="template-card-actions">
+        <button class="btn-load" onclick="loadTemplate({{ template_data.id }}, '{{ template_data.name|escapejs }}')">
+          ✓ Įkelti
+        </button>
+        <button class="btn-delete" onclick="deleteTemplate({{ template_data.id }}, '{{ template_data.name|escapejs }}')">
+          🗑 Trinti
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions-bottom">
+    <a href="{% url 'shop:search' %}" class="action-btn secondary">← Tęsti apsipirkimą</a>
+    <a href="{% url 'shop:basket' %}" class="action-btn primary">Į krepšelį →</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function loadTemplate(templateId, templateName) {
+    if (confirm('Ar norite užkrauti šabloną „' + templateName + '" į krepšelį?\nArtimų krepšelio turinys bus pakeistas.')) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                        document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+      
+      fetch('{% url "shop:load_template" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ template_id: templateId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Šablonas „' + data.template_name + '" ({{ template_data.items_count }} prekės) sėkmingai užkrautos į krepšelį!');
+          window.location.href = '{% url "shop:basket" %}';
+        } else {
+          alert('Nepavyko užkrauti šablono: ' + (data.error || 'Nežinoma klaida'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Nepavyko užkrauti šablono. Bandykite dar kartą.');
+      });
+    }
+  }
+
+  function deleteTemplate(templateId, templateName) {
+    if (confirm('Ar tikrai norite trinti šabloną „' + templateName + '"?')) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                        document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+      
+      fetch('{% url "shop:delete_template" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ template_id: templateId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Šablonas „' + templateName + '" ištrintas');
+          location.reload();
+        } else {
+          alert('Nepavyko trinti šablono: ' + (data.error || 'Nežinoma klaida'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Nepavyko trinti šablono. Bandykite dar kartą.');
+      });
+    }
+  }
+</script>
+{% endblock %}
