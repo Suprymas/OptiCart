@@ -48,7 +48,8 @@ jobs:
         run: docker compose exec -T web python -m pip install pytest pytest-django
 
       - name: Run tests
-        run: docker compose exec -T -e PYTHONPATH=/app/backend web pytest -c /app/backend/pytest.ini /app/backend/tests
+        run: |
+          docker compose exec -T web sh -lc "cd /app/backend; DB_ENGINE=sqlite PYTHONPATH=/app/backend pytest -c pytest.ini tests"
 
       - name: Show container logs on failure
         if: failure()
