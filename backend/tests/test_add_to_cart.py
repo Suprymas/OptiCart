@@ -75,6 +75,6 @@ class CartViewTests(TestCase):
         self.assertIn('Barbora', content)
         self.assertIn('Rimi', content)
 
-        # only one add/update control per product name: look for 'add-btn' occurrences
-        count_controls = content.count('class="add-btn"')
-        self.assertEqual(count_controls, 1)
+        # search results are grouped by product name, so there should be one result link
+        count_groups = content.count('class="search-result-link"')
+        self.assertEqual(count_groups, 1)

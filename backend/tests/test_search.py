@@ -44,9 +44,11 @@ class SearchTests(TestCase):
         p1 = MagicMock()
         p1.name = "Banana"
         p1.id = 11
+        p1.image_url = "https://example.com/banana.jpg"
         p2 = MagicMock()
         p2.name = "Banana"
         p2.id = 12
+        p2.image_url = None
 
         mock_search_products.return_value = [p1, p2]
         resp = self.client.get('/api/search/', {'q': 'Banana'})

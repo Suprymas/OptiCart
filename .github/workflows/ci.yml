@@ -38,9 +38,11 @@ jobs:
               continue
             fi
 
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:8000 || true)
-            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 500 ]; then
-              echo "Web app reachable with HTTP $http_code"
+            login_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:8000/login/ || true)
+            root_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:8000/ || true)
+
+            if [ "$login_code" = "200" ]; then
+              echo "Web app reachable: /login/ returned HTTP 200 (root returned HTTP $root_code)"
               exit 0
             fi
 
