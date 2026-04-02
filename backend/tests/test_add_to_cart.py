@@ -67,7 +67,7 @@ class CartViewTests(TestCase):
         mock_search.return_value = [p1, p2]
         mock_has.return_value = True
 
-        resp = self.client.get('/?q=apelsinai')
+        resp = self.client.get('/search/?q=apelsinai')
         self.assertEqual(resp.status_code, 200)
         content = resp.content.decode()
 
@@ -75,6 +75,6 @@ class CartViewTests(TestCase):
         self.assertIn('Barbora', content)
         self.assertIn('Rimi', content)
 
-        # search results are grouped by product name, so there should be one result link
+        # search results are grouped by product name into one result link
         count_groups = content.count('class="search-result-link"')
         self.assertEqual(count_groups, 1)
