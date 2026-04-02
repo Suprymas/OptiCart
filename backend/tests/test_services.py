@@ -1,11 +1,18 @@
-from django.test import SimpleTestCase, Client
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
 from unittest.mock import MagicMock, patch
 from decimal import Decimal
 import shop.services
 import shop.views
 
 
-class ServicesTests(SimpleTestCase):
+class ServicesTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(username='servicesuser', password='testpass123')
+        self.client.force_login(self.user)
+
     @patch("shop.services.Product")
     @patch("shop.services.BasketTemplateItem")
     def test_compare_template_prices_parallel(self, MockBasketTemplateItem, MockProduct):
@@ -71,7 +78,6 @@ class ServicesTests(SimpleTestCase):
 
     @patch("shop.views.compare_template_prices")
     def test_template_compare_view_returns_json(self, mock_service):
-        client = Client()
         expected = {
             "items": [{"name": "X", "quantity": 1, "prices": {"barbora": 1.0, "rimi": 2.0}}],
             "totals": {"barbora": 1.0, "rimi": 2.0},
@@ -79,6 +85,6 @@ class ServicesTests(SimpleTestCase):
         }
         mock_service.return_value = expected
 
-        resp = client.get("/template/42/compare/")
+        resp = self.client.get("/template/42/compare/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json(), expected)

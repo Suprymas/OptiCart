@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
 from unittest.mock import patch, MagicMock
 from types import SimpleNamespace
 import json
@@ -7,6 +8,9 @@ import json
 class CartViewTests(TestCase):
     def setUp(self):
         self.client = Client()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(username='testuser', password='testpass123')
+        self.client.force_login(self.user)
 
     @patch('shop.views.Product')
     def test_add_to_cart_adds_new_product_by_name(self, MockProduct):
@@ -63,7 +67,7 @@ class CartViewTests(TestCase):
         mock_search.return_value = [p1, p2]
         mock_has.return_value = True
 
-        resp = self.client.get('/?q=apelsinai')
+        resp = self.client.get('/search/?q=apelsinai')
         self.assertEqual(resp.status_code, 200)
         content = resp.content.decode()
 
@@ -71,6 +75,6 @@ class CartViewTests(TestCase):
         self.assertIn('Barbora', content)
         self.assertIn('Rimi', content)
 
-        # only one add/update control per product name: look for 'add-btn' occurrences
-        count_controls = content.count('class="add-btn"')
-        self.assertEqual(count_controls, 1)
+        # search results are grouped by product name into one result link
+        count_groups = content.count('class="search-result-link"')
+        self.assertEqual(count_groups, 1)

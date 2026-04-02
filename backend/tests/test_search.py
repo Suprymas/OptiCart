@@ -1,10 +1,17 @@
-from django.test import SimpleTestCase, Client
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
 from unittest.mock import MagicMock, patch
 
 from shop import search as search_mod
 
 
-class SearchTests(SimpleTestCase):
+class SearchTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(username='searchuser', password='testpass123')
+        self.client.force_login(self.user)
+
     def test_process_search_query_trims_and_lowercases(self):
         s = search_mod.process_search_query("  MiLk  ")
         self.assertEqual(s, "milk")
@@ -26,11 +33,9 @@ class SearchTests(SimpleTestCase):
 
     @patch("shop.views.search_products")
     def test_search_api_groups_results_and_no_results(self, mock_search_products):
-        client = Client()
-
         # case: no results
         mock_search_products.return_value = []
-        resp = client.get('/api/search/', {'q': 'doesnotexist'})
+        resp = self.client.get('/api/search/', {'q': 'doesnotexist'})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertTrue(data['no_results'])
@@ -39,12 +44,14 @@ class SearchTests(SimpleTestCase):
         p1 = MagicMock()
         p1.name = "Banana"
         p1.id = 11
+        p1.image_url = "https://example.com/banana.jpg"
         p2 = MagicMock()
         p2.name = "Banana"
         p2.id = 12
+        p2.image_url = None
 
         mock_search_products.return_value = [p1, p2]
-        resp = client.get('/api/search/', {'q': 'Banana'})
+        resp = self.client.get('/api/search/', {'q': 'Banana'})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertFalse(data['no_results'])
