@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
 from unittest.mock import patch, MagicMock
 from types import SimpleNamespace
 import json
@@ -7,6 +8,9 @@ import json
 class CartViewTests(TestCase):
     def setUp(self):
         self.client = Client()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(username='testuser', password='testpass123')
+        self.client.force_login(self.user)
 
     @patch('shop.views.Product')
     def test_add_to_cart_adds_new_product_by_name(self, MockProduct):
