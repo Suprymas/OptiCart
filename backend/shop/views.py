@@ -525,6 +525,97 @@ def add_to_cart(request):
     return JsonResponse({'success': True, 'product_id': pid, 'quantity': new_qty, 'action': action})
 
 
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def remove_from_basket(request):
+    """Remove a product from session cart.
+
+    Expects `product_name` in POST body (form or JSON).
+    Returns JSON with success status.
+    """
+    import json
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    product_name = data.get('product_name')
+    
+    if not product_name:
+        return JsonResponse({'error': 'product_name required'}, status=400)
+
+    cart = request.session.get('cart', {})
+    
+    # Remove by exact name match
+    if product_name in cart:
+        del cart[product_name]
+        request.session['cart'] = cart
+        request.session.modified = True
+        return JsonResponse({'success': True, 'product_name': product_name})
+    
+    return JsonResponse({'error': 'product not in cart'}, status=404)
+
+
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def save_basket_as_template(request):
+    """Save current session basket as a named template.
+
+    Expects `template_name` in POST body (form or JSON).
+    Returns JSON with success status and template ID.
+    """
+    import json
+    from .models import BasketTemplate, BasketTemplateItem, Product
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    template_name = data.get('template_name', '').strip()
+    
+    if not template_name:
+        return JsonResponse({'error': 'template_name required'}, status=400)
+
+    cart = request.session.get('cart', {})
+    
+    if not cart:
+        return JsonResponse({'error': 'basket is empty'}, status=400)
+
+    try:
+        # Create the template
+        template = BasketTemplate.objects.create(
+            user=request.user,
+            name=template_name
+        )
+        
+        # Add items to template
+        for product_name, quantity in cart.items():
+            # Find product by name (prefer first match, typically from Barbora)
+            product = Product.objects.filter(name=product_name).first()
+            if product:
+                BasketTemplateItem.objects.create(
+                    template=template,
+                    product=product,
+                    quantity=int(quantity)
+                )
+        
+        return JsonResponse({
+            'success': True,
+            'template_id': template.id,
+            'template_name': template.name
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def login_view(request):
     """Handle user login."""
     if request.method == 'POST':
@@ -552,3 +643,174 @@ def logout_view(request):
     """Handle user logout."""
     logout(request)
     return redirect('shop:home')
+
+
+@login_required(login_url='shop:login')
+def basket_view(request):
+    """Display current basket items from session."""
+    sess_cart = request.session.get('cart', {})
+    
+    # Build list of items with product details
+    items = []
+    total_price = 0
+    
+    for product_name, qty in sess_cart.items():
+        try:
+            qty = int(qty)
+            if qty <= 0:
+                continue
+            
+            # Get product info (use any store version)
+            product = Product.objects.filter(name=product_name).first()
+            if not product:
+                continue
+            
+            # Get all versions of this product (from different stores)
+            stores = list(Product.objects.filter(name=product_name).order_by('store'))
+            
+            
+            items.append({
+                'name': product_name,
+                'quantity': qty,
+                'stores': stores,
+                'image_url': product.image_url,
+            })
+            
+        except (ValueError, Exception):
+            continue
+    
+    return render(request, 'shop/basket.html', {
+        'items': items,
+        'total_items': sum(item['quantity'] for item in items),
+        'empty': len(items) == 0,
+    })
+
+
+@login_required(login_url='shop:login')
+def templates_view(request):
+    """Display list of user's saved basket templates."""
+    from .models import BasketTemplate
+    
+    templates = BasketTemplate.objects.filter(user=request.user).prefetch_related('items__product').order_by('-id')
+    
+    # Add item count to each template
+    template_list = []
+    for template in templates:
+        items_count = template.items.count()
+        template_list.append({
+            'id': template.id,
+            'name': template.name,
+            'items_count': items_count,
+            'template': template,
+        })
+    
+    return render(request, 'shop/templates.html', {
+        'templates': template_list,
+        'empty': len(template_list) == 0,
+    })
+
+
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def load_template(request):
+    """Load a saved template into the session cart.
+
+    Expects `template_id` in POST body (form or JSON).
+    Clears current cart and replaces with template items.
+    Returns JSON with success status.
+    """
+    import json
+    from .models import BasketTemplate
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    template_id = data.get('template_id')
+    
+    if not template_id:
+        return JsonResponse({'error': 'template_id required'}, status=400)
+
+    try:
+        template_id = int(template_id)
+    except Exception:
+        return JsonResponse({'error': 'invalid template_id'}, status=400)
+
+    try:
+        # Verify template belongs to user
+        template = BasketTemplate.objects.get(id=template_id, user=request.user)
+        
+        # Build new cart from template items
+        cart = {}
+        for item in template.items.all():
+            product_name = item.product.name
+            cart[product_name] = item.quantity
+        
+        # Replace session cart
+        request.session['cart'] = cart
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'template_id': template.id,
+            'template_name': template.name,
+            'items_count': template.items.count()
+        })
+    except BasketTemplate.DoesNotExist:
+        return JsonResponse({'error': 'template not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def delete_template(request):
+    """Delete a saved basket template.
+
+    Expects `template_id` in POST body (form or JSON).
+    Only allows deletion of user's own templates.
+    Returns JSON with success status.
+    """
+    import json
+    from .models import BasketTemplate
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    template_id = data.get('template_id')
+    
+    if not template_id:
+        return JsonResponse({'error': 'template_id required'}, status=400)
+
+    try:
+        template_id = int(template_id)
+    except Exception:
+        return JsonResponse({'error': 'invalid template_id'}, status=400)
+
+    try:
+        # Verify template belongs to user
+        template = BasketTemplate.objects.get(id=template_id, user=request.user)
+        template_name = template.name
+        
+        # Delete the template (cascades to items)
+        template.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'template_id': template_id,
+            'template_name': template_name
+        })
+    except BasketTemplate.DoesNotExist:
+        return JsonResponse({'error': 'template not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
