@@ -32,8 +32,15 @@ jobs:
 
       - name: Wait for the web app to become reachable
         run: |
-          for attempt in $(seq 1 30); do
-            if curl -fsS http://localhost:8000 >/dev/null; then
+          for attempt in $(seq 1 90); do
+            if ! docker compose ps web | grep -q "Up"; then
+              sleep 2
+              continue
+            fi
+
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:8000 || true)
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 500 ]; then
+              echo "Web app reachable with HTTP $http_code"
               exit 0
             fi
 
@@ -49,7 +56,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker compose exec -T web sh -lc "cd /app/backend; DB_ENGINE=sqlite PYTHONPATH=/app/backend pytest -c pytest.ini tests"
+          docker compose exec -T web sh -lc "cd /app/backend; DB_ENGINE=sqlite DJANGO_SETTINGS_MODULE=core.settings PYTHONPATH=/app/backend pytest -c pytest.ini -o django_find_project=false tests"
 
       - name: Show container logs on failure
         if: failure()
