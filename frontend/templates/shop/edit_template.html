@@ -1,0 +1,548 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Redaguoti šabloną - OptiCart{% endblock %}
+
+{% block head_extra %}
+<style>
+  .edit-template-container {
+    max-width: 1000px;
+    margin: 20px auto;
+  }
+
+  .edit-template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .edit-template-header h1 {
+    margin: 0;
+    font-size: 32px;
+  }
+
+  .edit-template-header-info {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .edit-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+
+  .template-items-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .search-products-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4CAF50;
+  }
+
+  .search-input-group {
+    display: flex;
+    gap: 10px;
+  }
+
+  .search-input-group input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  .search-input-group input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  }
+
+  .product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .product-item {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .product-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #f5f5f5;
+    flex-shrink: 0;
+  }
+
+  .product-item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .product-item-name {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+  }
+
+  .product-item-prices {
+    display: flex;
+    gap: 15px;
+    font-size: 13px;
+  }
+
+  .product-item-price {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .product-item-price-label {
+    color: #999;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .product-item-price-value {
+    color: #4CAF50;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .product-item-actions {
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .product-item-actions input {
+    width: 50px;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .product-item-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: background-color 0.3s;
+  }
+
+  .btn-add {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .btn-add:hover {
+    background-color: #45a049;
+  }
+
+  .btn-remove {
+    background-color: #ff6b6b;
+    color: white;
+  }
+
+  .btn-remove:hover {
+    background-color: #ff5252;
+  }
+
+  .template-item {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .template-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #f5f5f5;
+    flex-shrink: 0;
+  }
+
+  .template-item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .template-item-name {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+  }
+
+  .template-item-qty {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .template-item-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .template-item-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    background-color: #ff6b6b;
+    color: white;
+    transition: background-color 0.3s;
+  }
+
+  .template-item-actions button:hover {
+    background-color: #ff5252;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+  }
+
+  .search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .actions-bottom {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+  }
+
+  .action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .action-btn.primary {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  .action-btn.primary:hover {
+    background-color: #45a049;
+  }
+
+  .action-btn.secondary {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  .action-btn.secondary:hover {
+    background-color: #e0e0e0;
+  }
+
+  @media (max-width: 768px) {
+    .edit-section {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .product-list,
+    .search-results {
+      max-height: none;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-template-container">
+  <div class="edit-template-header">
+    <h1>Redaguoti šabloną</h1>
+    <div class="edit-template-header-info">
+      <strong>{{ template.name }}</strong>
+    </div>
+  </div>
+
+  <div class="edit-section">
+    <!-- Left side: Template items -->
+    <div class="template-items-section">
+      <h2 class="section-title">Šablono prekės</h2>
+      {% if empty %}
+        <div class="empty-state">
+          <p>Šablonas tuščias. Pridėkite prekių iš paieškos.</p>
+        </div>
+      {% else %}
+        <div class="product-list">
+          {% for item in items %}
+            <div class="template-item">
+              <img 
+                src="{{ item.image_url }}" 
+                alt="{{ item.product_name }}" 
+                class="template-item-image"
+                onerror="this.src='{% static 'shop/placeholder.svg' %}'"
+              />
+              <div class="template-item-details">
+                <h3 class="template-item-name">{{ item.product_name }}</h3>
+                <div class="template-item-qty">Kiekis: <strong>{{ item.quantity }}</strong></div>
+              </div>
+              <div class="template-item-actions">
+                <button onclick="removeFromTemplateUI({{ template.id }}, {{ item.product_id }}, '{{ item.product_name|escapejs }}')">
+                  🗑 Trinti
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Right side: Search and add products -->
+    <div class="search-products-section">
+      <h2 class="section-title">Pridėti prekes</h2>
+      <div class="search-input-group">
+        <input 
+          type="text" 
+          id="productSearch" 
+          placeholder="Paieškoti prekių..." 
+          onkeyup="searchProducts()"
+        />
+      </div>
+      <div id="searchResults" class="search-results">
+        <div class="empty-state">Pradėkite paiešką</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions-bottom">
+    <a href="{% url 'shop:templates' %}" class="action-btn secondary">← Grįžti į šablonus</a>
+    <a href="{% url 'shop:load_template' %}" class="action-btn primary" onclick="return loadTemplateAfterEdit(event);">
+      Įkelti į krepšelį →
+    </a>
+  </div>
+</div>
+
+<script>
+  const TEMPLATE_ID = {{ template.id }};
+  let searchTimeout;
+
+  function searchProducts() {
+    const query = document.getElementById('productSearch').value.trim();
+    
+    if (query.length < 3) {
+      document.getElementById('searchResults').innerHTML = '<div class="empty-state">Pradėkite paiešką (bent 3 simboliai)</div>';
+      return;
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      fetch('{% url "shop:search_api" %}?q=' + encodeURIComponent(query))
+        .then(response => response.json())
+        .then(data => {
+          const results = data.results || [];
+          
+          if (results.length === 0) {
+            document.getElementById('searchResults').innerHTML = '<div class="empty-state">Nėra rezultatų</div>';
+            return;
+          }
+
+          let html = '';
+          results.forEach(product => {
+            html += `
+              <div class="product-item">
+                <img 
+                  src="${product.image_url || '{% static "shop/placeholder.svg" %}'}" 
+                  alt="${product.name}" 
+                  class="product-item-image"
+                  onerror="this.src='{% static 'shop/placeholder.svg' %}'"
+                />
+                <div class="product-item-details">
+                  <h3 class="product-item-name">${product.name}</h3>
+                  <div class="product-item-prices">
+                    ${product.stores.map(store => `
+                      <div class="product-item-price">
+                        <div class="product-item-price-label">${store.store}</div>
+                        <div class="product-item-price-value">
+                          ${store.price ? store.price + ' EUR' : 'N/A'}
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="product-item-actions">
+                  <input type="number" id="qty-${product.id}" value="1" min="1" max="10" />
+                  <button onclick="addToTemplateUI(${TEMPLATE_ID}, ${product.id}, '${product.name.replace(/'/g, "\\'")}')">
+                    + Pridėti
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          
+          document.getElementById('searchResults').innerHTML = html;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('searchResults').innerHTML = '<div class="empty-state">Paieška nepavyko</div>';
+        });
+    }, 300);
+  }
+
+  function addToTemplateUI(templateId, productId, productName) {
+    const quantity = parseInt(document.getElementById('qty-' + productId).value) || 1;
+    addToTemplate(templateId, productId, quantity, productName);
+  }
+
+  function addToTemplate(templateId, productId, quantity, productName) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch('{% url "shop:add_to_template" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ 
+        template_id: templateId,
+        product_id: productId,
+        quantity: quantity
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Preke „' + productName + '" pridėta prie šablono');
+        location.reload();
+      } else {
+        alert('Nepavyko pridėti prekės: ' + (data.error || 'Nežinoma klaida'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Nepavyko pridėti prekės. Bandykite dar kartą.');
+    });
+  }
+
+  function removeFromTemplateUI(templateId, productId, productName) {
+    if (confirm('Ar tikrai norite pašalinti „' + productName + '" iš šablono?')) {
+      removeFromTemplate(templateId, productId, productName);
+    }
+  }
+
+  function removeFromTemplate(templateId, productId, productName) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch('{% url "shop:remove_from_template" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ 
+        template_id: templateId,
+        product_id: productId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Preke ištrinta iš šablono');
+        location.reload();
+      } else {
+        alert('Nepavyko trinti prekės: ' + (data.error || 'Nežinoma klaida'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Nepavyko trinti prekės. Bandykite dar kartą.');
+    });
+  }
+
+  function loadTemplateAfterEdit(event) {
+    event.preventDefault();
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch('{% url "shop:load_template" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ template_id: TEMPLATE_ID })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = '{% url "shop:basket" %}';
+      } else {
+        alert('Nepavyko užkrauti šablono: ' + (data.error || 'Nežinoma klaida'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Nepavyko užkrauti šablono. Bandykite dar kartą.');
+    });
+  }
+</script>
+{% endblock %}

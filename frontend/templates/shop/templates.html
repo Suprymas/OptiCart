@@ -85,7 +85,8 @@
     gap: 10px;
   }
 
-  .template-card-actions button {
+  .template-card-actions button,
+  .template-card-actions a {
     flex: 1;
     padding: 10px;
     border: none;
@@ -229,6 +230,9 @@
         <button class="btn-load" onclick="loadTemplate({{ template_data.id }}, '{{ template_data.name|escapejs }}')">
           ✓ Įkelti
         </button>
+        <a href="{% url 'shop:edit_template' template_data.id %}" class="btn-load" style="text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center;">
+          ✎ Redaguoti
+        </a>
         <button class="btn-delete" onclick="deleteTemplate({{ template_data.id }}, '{{ template_data.name|escapejs }}')">
           🗑 Trinti
         </button>

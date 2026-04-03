@@ -393,8 +393,8 @@
     </div>
     <form class="modal-form" onsubmit="saveBasketAsTemplate(event)">
       <div>
-        <label for="templateName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Šablono pavadinimas</label>
-        <input type="text" id="templateName" name="template_name" placeholder="pvz. Savaitės pirkiniai" required />
+        <label for="templateName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Šablono pavadinimas (5-30 simboliai)</label>
+        <input type="text" id="templateName" name="template_name" placeholder="pvz. Savaitės pirkiniai" minlength="5" maxlength="30" required />
       </div>
       <div class="modal-form-buttons">
         <button type="submit" class="btn-save">Išsaugoti</button>
@@ -421,6 +421,16 @@
     
     if (!templateName) {
       alert('Prašome įvesti šablono pavadinimą');
+      return;
+    }
+
+    if (templateName.length < 5) {
+      alert('Šablono pavadinimas turi būti bent 5 simboliai ilgas');
+      return;
+    }
+
+    if (templateName.length > 30) {
+      alert('Šablono pavadinimas negali viršyti 30 simbolių');
       return;
     }
 

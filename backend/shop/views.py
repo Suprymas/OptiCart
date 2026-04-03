@@ -584,6 +584,12 @@ def save_basket_as_template(request):
     if not template_name:
         return JsonResponse({'error': 'template_name required'}, status=400)
 
+    if len(template_name) < 5:
+        return JsonResponse({'error': 'template name must be at least 5 characters'}, status=400)
+
+    if len(template_name) > 30:
+        return JsonResponse({'error': 'template name cannot exceed 30 characters'}, status=400)
+
     cart = request.session.get('cart', {})
     
     if not cart:
@@ -808,6 +814,164 @@ def delete_template(request):
             'success': True,
             'template_id': template_id,
             'template_name': template_name
+        })
+    except BasketTemplate.DoesNotExist:
+        return JsonResponse({'error': 'template not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='shop:login')
+def edit_template(request, template_id):
+    """Display template editor with ability to add/remove products."""
+    from .models import BasketTemplate
+    
+    try:
+        template_id = int(template_id)
+    except Exception:
+        return redirect('shop:templates')
+    
+    try:
+        template = BasketTemplate.objects.get(id=template_id, user=request.user)
+    except BasketTemplate.DoesNotExist:
+        return redirect('shop:templates')
+    
+    # Get template items with product details
+    items = []
+    for item in template.items.all():
+        product = item.product
+        # Get all versions of this product (from different stores)
+        stores = list(Product.objects.filter(name=product.name).order_by('store'))
+        
+        items.append({
+            'id': item.id,
+            'product_id': product.id,
+            'product_name': product.name,
+            'quantity': item.quantity,
+            'stores': stores,
+            'image_url': product.image_url,
+        })
+    
+    return render(request, 'shop/edit_template.html', {
+        'template': template,
+        'items': items,
+        'empty': len(items) == 0,
+    })
+
+
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def add_to_template(request):
+    """Add a product to a saved template.
+
+    Expects `template_id`, `product_id`, and `quantity` in POST body (form or JSON).
+    Returns JSON with success status.
+    """
+    import json
+    from .models import BasketTemplate, BasketTemplateItem
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    template_id = data.get('template_id')
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+    
+    if not template_id or not product_id:
+        return JsonResponse({'error': 'template_id and product_id required'}, status=400)
+
+    try:
+        template_id = int(template_id)
+        product_id = int(product_id)
+        quantity = int(quantity)
+    except Exception:
+        return JsonResponse({'error': 'invalid parameters'}, status=400)
+
+    if quantity < 1 or quantity > 10:
+        quantity = 1
+
+    try:
+        # Verify template belongs to user
+        template = BasketTemplate.objects.get(id=template_id, user=request.user)
+        
+        # Verify product exists
+        product = Product.objects.get(pk=product_id)
+        
+        # Add or update template item
+        item, created = BasketTemplateItem.objects.update_or_create(
+            template=template,
+            product=product,
+            defaults={'quantity': quantity}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'template_id': template.id,
+            'product_id': product.id,
+            'product_name': product.name,
+            'quantity': quantity
+        })
+    except BasketTemplate.DoesNotExist:
+        return JsonResponse({'error': 'template not found'}, status=404)
+    except Product.DoesNotExist:
+        return JsonResponse({'error': 'product not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='shop:login')
+@require_http_methods(["POST"])
+def remove_from_template(request):
+    """Remove a product from a saved template.
+
+    Expects `template_id` and `product_id` in POST body (form or JSON).
+    Returns JSON with success status.
+    """
+    import json
+    from .models import BasketTemplate, BasketTemplateItem
+
+    # try POST (form) first, otherwise parse JSON body
+    data = request.POST if request.POST else {}
+    if not data:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except Exception:
+            data = {}
+
+    template_id = data.get('template_id')
+    product_id = data.get('product_id')
+    
+    if not template_id or not product_id:
+        return JsonResponse({'error': 'template_id and product_id required'}, status=400)
+
+    try:
+        template_id = int(template_id)
+        product_id = int(product_id)
+    except Exception:
+        return JsonResponse({'error': 'invalid parameters'}, status=400)
+
+    try:
+        # Verify template belongs to user
+        template = BasketTemplate.objects.get(id=template_id, user=request.user)
+        
+        # Delete template item
+        deleted_count, _ = BasketTemplateItem.objects.filter(
+            template=template,
+            product_id=product_id
+        ).delete()
+        
+        if deleted_count == 0:
+            return JsonResponse({'error': 'item not found in template'}, status=404)
+        
+        return JsonResponse({
+            'success': True,
+            'template_id': template.id,
+            'product_id': product_id
         })
     except BasketTemplate.DoesNotExist:
         return JsonResponse({'error': 'template not found'}, status=404)
