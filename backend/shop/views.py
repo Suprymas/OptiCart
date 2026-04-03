@@ -13,7 +13,7 @@ from .search import (
     get_selected_filters,
 )
 from .comparison import compare_basket_prices
-from .models import BasketItem, Product, PriceHistory
+from shop.models import BasketItem, Product, PriceHistory, BasketTemplate, BasketTemplateItem
 from .services import compare_template_prices, _get_price_at_date
 from django.db import DatabaseError
 from django.urls import reverse
@@ -569,7 +569,6 @@ def save_basket_as_template(request):
     Returns JSON with success status and template ID.
     """
     import json
-    from .models import BasketTemplate, BasketTemplateItem, Product
 
     # try POST (form) first, otherwise parse JSON body
     data = request.POST if request.POST else {}
@@ -695,7 +694,7 @@ def basket_view(request):
 @login_required(login_url='shop:login')
 def templates_view(request):
     """Display list of user's saved basket templates."""
-    from .models import BasketTemplate
+    from shop.models import BasketTemplate
     
     templates = BasketTemplate.objects.filter(user=request.user).prefetch_related('items__product').order_by('-id')
     
@@ -726,7 +725,6 @@ def load_template(request):
     Returns JSON with success status.
     """
     import json
-    from .models import BasketTemplate
 
     # try POST (form) first, otherwise parse JSON body
     data = request.POST if request.POST else {}
@@ -782,7 +780,7 @@ def delete_template(request):
     Returns JSON with success status.
     """
     import json
-    from .models import BasketTemplate
+
 
     # try POST (form) first, otherwise parse JSON body
     data = request.POST if request.POST else {}
@@ -824,7 +822,7 @@ def delete_template(request):
 @login_required(login_url='shop:login')
 def edit_template(request, template_id):
     """Display template editor with ability to add/remove products."""
-    from .models import BasketTemplate
+
     
     try:
         template_id = int(template_id)
@@ -868,7 +866,7 @@ def add_to_template(request):
     Returns JSON with success status.
     """
     import json
-    from .models import BasketTemplate, BasketTemplateItem
+
 
     # try POST (form) first, otherwise parse JSON body
     data = request.POST if request.POST else {}
@@ -933,7 +931,7 @@ def remove_from_template(request):
     Returns JSON with success status.
     """
     import json
-    from .models import BasketTemplate, BasketTemplateItem
+
 
     # try POST (form) first, otherwise parse JSON body
     data = request.POST if request.POST else {}
