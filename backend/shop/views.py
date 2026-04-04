@@ -13,7 +13,7 @@ from .search import (
     get_selected_filters,
 )
 from .comparison import compare_basket_prices
-from shop.models import BasketItem, Product, PriceHistory, BasketTemplate, BasketTemplateItem
+from shop.models import Product, PriceHistory, BasketTemplate, BasketTemplateItem
 from .services import compare_template_prices, _get_price_at_date
 from django.db import DatabaseError
 from django.urls import reverse
@@ -171,7 +171,21 @@ def search_view(request):
 
 @login_required
 def basket_comparison(request):
-    basket_items = BasketItem.objects.filter(user=request.user)
+    from types import SimpleNamespace
+
+    sess_cart = request.session.get('cart', {})
+    basket_items = []
+    for product_name, qty in sess_cart.items():
+        try:
+            quantity = int(qty)
+        except Exception:
+            continue
+        if quantity <= 0:
+            continue
+        basket_items.append(
+            SimpleNamespace(product_name=str(product_name), quantity=quantity)
+        )
+
     comparison = compare_basket_prices(basket_items)
     return render(request, 'shop/comparison.html', {'comparison': comparison})
 
