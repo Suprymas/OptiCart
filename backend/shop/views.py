@@ -26,9 +26,10 @@ def home_view(request):
     query = request.GET.get('q', '')
     category = request.GET.get('category', '')
     selected_filters = get_selected_filters(request.GET)
-    
-    # If search query is provided, use search, otherwise show all
-    if query and len(query) >= 3:
+
+    # Use filtered search whenever the user selected a category or detail filter,
+    # even if the search box is empty.
+    if (query and len(query) >= 3) or category or selected_filters:
         results_qs = search_products(query, category, selected_filters)
         groups_data = list(results_qs)
     else:
@@ -384,6 +385,31 @@ def search_api(request):
     q_normalized = (q or '').strip()
 
     if not q_normalized:
+        if category or selected_filters:
+            results_qs = search_products(q, category, selected_filters)
+
+            groups = []
+            seen = set()
+            for p in results_qs:
+                name = getattr(p, 'name', '')
+                if name in seen:
+                    continue
+                seen.add(name)
+                image_url = p.image_url if hasattr(p, 'image_url') and p.image_url else None
+                groups.append({
+                    'name': name,
+                    'rep_id': getattr(p, 'id', None),
+                    'image_url': image_url,
+                })
+
+            return JsonResponse({
+                'query': q,
+                'category': category,
+                'selected_filters': selected_filters,
+                'results': groups,
+                'no_results': len(groups) == 0,
+            })
+
         # Return all comparable products (available in both stores) for clear-search restore.
         groups = []
         for name in Product.objects.values_list('name', flat=True).distinct():

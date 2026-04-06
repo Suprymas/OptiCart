@@ -148,6 +148,12 @@
           return params;
         }
 
+        function hasSelectedExtraFilters() {
+          return Array.from(extraFiltersEl.querySelectorAll('select[data-field-name]')).some(sel => {
+            return (sel.value || '').trim() !== '';
+          });
+        }
+
         function renderResults(list) {
           gridEl.innerHTML = '';
           if (!list || list.length === 0) {
@@ -199,7 +205,8 @@
         }
 
         function doSearch(q, category) {
-          if (!q) {
+          const hasFilters = hasSelectedExtraFilters();
+          if ((!q || q.length < 3) && !category && !hasFilters) {
             let url = '/api/search/?q=';
             if (category) {
               url += '&category=' + encodeURIComponent(category);
@@ -214,9 +221,29 @@
             return;
           }
 
-          if (q.length < 3) {
-            return;
+            if ((!q || q.length < 3) && (category || hasFilters)) {
+              let url = '/api/search/?q=';
+              if (category) {
+                url += '&category=' + encodeURIComponent(category);
+              }
+              const extraParams = collectExtraFilterParams();
+              const extraQuery = extraParams.toString();
+              if (extraQuery) {
+                url += '&' + extraQuery;
+              }
+              fetch(url, {headers: {'Accept': 'application/json'}})
+                .then(r => r.json())
+                .then(data => {
+                  if (data && Array.isArray(data.results)) {
+                    renderResults(data.results);
+                  }
+                }).catch(err => { console.error('search error', err); });
+              return;
           }
+
+            if (q.length < 3) {
+              return;
+            }
 
           let url = '/api/search/?q=' + encodeURIComponent(q);
           if (category) {
@@ -242,7 +269,7 @@
           
           if (timer) clearTimeout(timer);
           
-          if (q.length >= 3) {
+          if (q.length >= 3 || category || hasSelectedExtraFilters()) {
             timer = setTimeout(() => doSearch(q, category), 200);
           } else if (q.length === 0) {
             // Clear search - show all without page reload
@@ -266,7 +293,7 @@
 
           const urlParams = new URLSearchParams(window.location.search);
           const q = (urlParams.get('q') || '').trim();
-          if (q.length >= 3) {
+          if (q.length >= 3 || category || hasSelectedExtraFilters()) {
             input.value = q;
             doSearch(q, category);
           }

@@ -24,7 +24,7 @@
     "name": "Pienas DVARO 2,5% 1 l",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: pienas",
+    "description": "Kategorija: pieno produktai; Tipas: pienas; Riebumas: 2,5%; Kiekis: 1 L",
     "price": "1.59",
     "image_url": "https://cdn.barbora.lt/products/6dc50b1e-4336-415c-9fce-f4d72a15bf86_m.png"
   }
@@ -36,7 +36,7 @@
     "name": "Pienas DVARO 2,5% 1 l",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: pienas",
+    "description": "Kategorija: pieno produktai; Tipas: pienas; Riebumas: 2,5%; Kiekis: 1 L",
     "price": "1.65",
     "image_url": "https://cdn.barbora.lt/products/6dc50b1e-4336-415c-9fce-f4d72a15bf86_m.png"
   }
@@ -48,7 +48,7 @@
     "name": "Pienas DVARO 3,5% 1 l",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: pienas",
+    "description": "Kategorija: pieno produktai; Tipas: pienas; Riebumas: 3,5%; Kiekis: 1 L",
     "price": "1.69",
     "image_url": "https://cdn.barbora.lt/products/ed6cc121-041e-4f5e-b036-8cdfd8a4733e_m.png"
   }
@@ -60,7 +60,7 @@
     "name": "Pienas DVARO 3,5% 1 l",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: pienas",
+    "description": "Kategorija: pieno produktai; Tipas: pienas; Riebumas: 3,5%; Kiekis: 1 L",
     "price": "1.79",
     "image_url": "https://cdn.barbora.lt/products/ed6cc121-041e-4f5e-b036-8cdfd8a4733e_m.png"
   }
@@ -72,7 +72,7 @@
     "name": "Kefyras VILKYŠKIŲ 2,5% 1 kg",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: kefyras",
+    "description": "Kategorija: pieno produktai; Tipas: kefyras; Riebumas: 2,5%; Svoris: 1 kg",
     "price": "1.85",
     "image_url": "https://cdn.barbora.lt/products/de5ff830-5b16-49ce-8c62-c9d8a3975553_m.png"
   }
@@ -84,7 +84,7 @@
     "name": "Kefyras VILKYŠKIŲ 2,5% 1 kg",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: kefyras",
+    "description": "Kategorija: pieno produktai; Tipas: kefyras; Riebumas: 2,5%; Svoris: 1 kg",
     "price": "1.49",
     "image_url": "https://cdn.barbora.lt/products/de5ff830-5b16-49ce-8c62-c9d8a3975553_m.png"
   }
@@ -96,7 +96,7 @@
     "name": "Grietinė DVARO 30% 380 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: grietine",
+    "description": "Kategorija: pieno produktai; Tipas: grietinė; Riebumas: 30%; Svoris: 380 g",
     "price": "2.69",
     "image_url": "https://cdn.barbora.lt/products/70836677-20b7-4eb0-9b0f-34ed8016e069_m.png"
   }
@@ -108,7 +108,7 @@
     "name": "Grietinė DVARO 30% 380 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: grietine",
+    "description": "Kategorija: pieno produktai; Tipas: grietinė; Riebumas: 30%; Svoris: 380 g",
     "price": "1.89",
     "image_url": "https://cdn.barbora.lt/products/70836677-20b7-4eb0-9b0f-34ed8016e069_m.png"
   }
@@ -120,7 +120,7 @@
     "name": "Sviestas ROKIŠKIO NAMINIS 82% 180 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: sviestas",
+    "description": "Kategorija: pieno produktai; Tipas: sviestas; Riebumas: 82%; Svoris: 180 g",
     "price": "2.39",
     "image_url": "https://cdn.barbora.lt/products/0b7bd46c-d6d8-4d09-9cc5-c097694a0488_m.png"
   }
@@ -132,7 +132,7 @@
     "name": "Sviestas ROKIŠKIO NAMINIS 82% 180 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: sviestas",
+    "description": "Kategorija: pieno produktai; Tipas: sviestas; Riebumas: 82%; Svoris: 180 g",
     "price": "2.19",
     "image_url": "https://cdn.barbora.lt/products/0b7bd46c-d6d8-4d09-9cc5-c097694a0488_m.png"
   }
@@ -144,7 +144,7 @@
     "name": "Sviestas ŽEMAITIJOS 82% 200 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: sviestas",
+    "description": "Kategorija: pieno produktai; Tipas: sviestas; Riebumas: 82%; Svoris: 200 g",
     "price": "2.79",
     "image_url": "https://cdn.barbora.lt/products/7804cbab-4886-4694-b4f2-6ef04a80957d_m.png"
   }
@@ -156,7 +156,7 @@
     "name": "Sviestas ŽEMAITIJOS 82% 200 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: sviestas",
+    "description": "Kategorija: pieno produktai; Tipas: sviestas; Riebumas: 82%; Svoris: 200 g",
     "price": "1.99",
     "image_url": "https://cdn.barbora.lt/products/7804cbab-4886-4694-b4f2-6ef04a80957d_m.png"
   }
@@ -168,7 +168,7 @@
     "name": "Jogurtas GRAIKIŠKA AMFORA natūralus 3,9% 370 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: jogurtas",
+    "description": "Kategorija: pieno produktai; Tipas: jogurtas; Riebumas: 3,9%; Svoris: 370 g",
     "price": "1.99",
     "image_url": "https://cdn.barbora.lt/products/081df5d7-2165-42e3-819c-3cb7eb88a1b7_m.png"
   }
@@ -180,7 +180,7 @@
     "name": "Jogurtas GRAIKIŠKA AMFORA natūralus 3,9% 370 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: jogurtas",
+    "description": "Kategorija: pieno produktai; Tipas: jogurtas; Riebumas: 3,9%; Svoris: 370 g",
     "price": "1.89",
     "image_url": "https://cdn.barbora.lt/products/081df5d7-2165-42e3-819c-3cb7eb88a1b7_m.png"
   }
@@ -192,7 +192,7 @@
     "name": "Duona MOČIUTĖS juoda 450 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: duona",
+    "description": "Kategorija: kepiniai; Tipas: duona; Pavadinimas: juoda; Svoris: 450 g",
     "price": "1.79",
     "image_url": "https://cdn.barbora.lt/products/6391cbc2-86b4-48ed-a712-37f6446a1ae5_m.png"
   }
@@ -204,7 +204,7 @@
     "name": "Duona MOČIUTĖS juoda 450 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: duona",
+    "description": "Kategorija: kepiniai; Tipas: duona; Pavadinimas: juoda; Svoris: 450 g",
     "price": "1.39",
     "image_url": "https://cdn.barbora.lt/products/6391cbc2-86b4-48ed-a712-37f6446a1ae5_m.png"
   }
@@ -216,7 +216,7 @@
     "name": "Skrudinimo duona TOSTE 500 g",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: duona",
+    "description": "Kategorija: kepiniai; Tipas: duona; Paskirtis: skrudinimui; Svoris: 500 g",
     "price": "1.59",
     "image_url": "https://cdn.barbora.lt/products/8fdebf4e-7a00-400b-8eaf-1bdaedd52466_m.png"
   }
@@ -228,7 +228,7 @@
     "name": "Skrudinimo duona TOSTE 500 g",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: duona",
+    "description": "Kategorija: kepiniai; Tipas: duona; Paskirtis: skrudinimui; Svoris: 500 g",
     "price": "1.89",
     "image_url": "https://cdn.barbora.lt/products/8fdebf4e-7a00-400b-8eaf-1bdaedd52466_m.png"
   }
@@ -240,7 +240,7 @@
     "name": "Cukrus PANEVĖŽIO PLIUS 1 kg",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: cukrus",
+    "description": "Kategorija: kita; Tipas: cukrus; Svoris: 1 kg",
     "price": "0.79",
     "image_url": "https://cdn.barbora.lt/products/2be391ff-8358-4d54-a04b-88ddb5d971ab_m.png"
   }
@@ -252,7 +252,7 @@
     "name": "Cukrus PANEVĖŽIO PLIUS 1 kg",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: cukrus",
+    "description": "Kategorija: kita; Tipas: cukrus; Svoris: 1 kg",
     "price": "0.69",
     "image_url": "https://cdn.barbora.lt/products/2be391ff-8358-4d54-a04b-88ddb5d971ab_m.png"
   }
@@ -264,7 +264,7 @@
     "name": "Lietuviški trumpavaisiai agurkai 1 kg",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: agurkai",
+    "description": "Kategorija: vaisiai ir daržovės; Tipas: daržovės; Grupė: daržovės; Pavidalas: trumpavaisiai agurkai; Svoris: 1 kg",
     "price": "3.99",
     "image_url": "https://cdn.barbora.lt/products/1fb22e11-6d00-487b-b51f-990d72c9121a_m.png"
   }
@@ -276,7 +276,7 @@
     "name": "Lietuviški trumpavaisiai agurkai 1 kg",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: agurkai",
+    "description": "Kategorija: vaisiai ir daržovės; Tipas: daržovės; Grupė: daržovės; Pavidalas: trumpavaisiai agurkai; Svoris: 1 kg",
     "price": "1.99",
     "image_url": "https://cdn.barbora.lt/products/1fb22e11-6d00-487b-b51f-990d72c9121a_m.png"
   }
@@ -288,7 +288,7 @@
     "name": "Bananai 1 kg",
     "store": "barbora",
     "store_ref": 1,
-    "description": "Kategorija: bananai",
+    "description": "Kategorija: vaisiai ir daržovės; Tipas: vaisiai; Grupė: vaisiai; Pavidalas: bananai; Svoris: 1 kg",
     "price": "1.15",
     "image_url": "https://cdn.barbora.lt/products/1d747537-6760-4098-ab24-8c658d1f9491_m.png"
   }
@@ -300,7 +300,7 @@
     "name": "Bananai 1 kg",
     "store": "rimi",
     "store_ref": 2,
-    "description": "Kategorija: bananai",
+    "description": "Kategorija: vaisiai ir daržovės; Tipas: vaisiai; Grupė: vaisiai; Pavidalas: bananai; Svoris: 1 kg",
     "price": "1.69",
     "image_url": "https://cdn.barbora.lt/products/1d747537-6760-4098-ab24-8c658d1f9491_m.png"
   }

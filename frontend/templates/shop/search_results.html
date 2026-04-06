@@ -151,6 +151,12 @@
           return params;
         }
 
+        function hasSelectedExtraFilters() {
+          return Array.from(extraFiltersEl.querySelectorAll('select[data-field-name]')).some(sel => {
+            return (sel.value || '').trim() !== '';
+          });
+        }
+
         function renderResults(list, query) {
           resultsEl.innerHTML = '';
           if (!list || list.length === 0) {
@@ -191,7 +197,8 @@
         }
 
         function doSearch(q, category) {
-          if (!q || q.length < 3) {
+          const hasFilters = hasSelectedExtraFilters();
+          if ((!q || q.length < 3) && !category && !hasFilters) {
             renderResults([], q);
             serverHeading.style.display = '';
             return;
@@ -241,7 +248,7 @@
           const q = (input.value || '').trim();
           const category = (categorySelect && categorySelect.value || '').trim();
           renderExtraFilters(category);
-          if (q.length >= 3) doSearch(q, category);
+          if (q.length >= 3 || category || hasSelectedExtraFilters()) doSearch(q, category);
         })();
       })();
 
