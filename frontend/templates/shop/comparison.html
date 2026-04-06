@@ -7,48 +7,153 @@
     <h1>Krepseliu kainu palyginimas</h1>
 
     {% if comparison.items %}
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Preke</th>
-            <th>Kiekis</th>
-            <th>Barbora (EUR)</th>
-            <th>Rimi (EUR)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in comparison.items %}
-          <tr>
-            <td>{{ item.name }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>
-              {% if item.prices.barbora %} {{ item.prices.barbora }} {% else %}
-              <span class="empty">Nerasta</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if item.prices.rimi %} {{ item.prices.rimi }} {% else %}
-              <span class="empty">Nerasta</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="2"><strong>Is viso</strong></td>
-            <td>{{ comparison.totals.barbora }}</td>
-            <td>{{ comparison.totals.rimi }}</td>
-          </tr>
-        </tfoot>
-      </table>
+    <style>
+      .compare-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .store-card {
+        border: 1px solid #d9d9d9;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .store-card.best-bg {
+        background: #f1faf4;
+        border-color: #cfe7d7;
+      }
+      .store-card.worse-bg {
+        background: #fdf4f4;
+        border-color: #efd6d6;
+      }
+      .store-card h2 {
+        margin: 0 0 8px;
+      }
+      .badge {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .badge.best {
+        background: #e6f7ec;
+        color: #1f7a3b;
+      }
+      .badge.worse {
+        background: #f9ecec;
+        color: #a23232;
+      }
+      .store-total {
+        margin-top: 8px;
+        font-weight: 700;
+      }
+      .cheapest-box {
+        margin: 18px auto 0;
+        max-width: 520px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        text-align: center;
+        background: #eef6ff;
+        border: 1px solid #cfe2f6;
+      }
+      .cheapest-box .cheapest {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+      }
+      @media (max-width: 900px) {
+        .compare-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+
+    <div class="compare-grid">
+      <div class="store-card {% if comparison.cheapest_store == 'barbora' %}best-bg{% elif comparison.cheapest_store %}worse-bg{% endif %}">
+        <h2>
+          Barbora
+          {% if comparison.cheapest_store == 'barbora' %}
+          <span class="badge best">Pigesnis krepselis</span>
+          {% elif comparison.cheapest_store %}
+          <span class="badge worse">Brangesnis krepselis</span>
+          {% endif %}
+        </h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Preke</th>
+                <th>Kiekis</th>
+                <th>Kaina (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in comparison.items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  {% if item.prices.barbora is not None %}
+                  {{ item.prices.barbora }}
+                  {% else %}
+                  <span class="empty">Nerasta</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="store-total">Is viso: {{ comparison.totals.barbora }} EUR</p>
+      </div>
+
+      <div class="store-card {% if comparison.cheapest_store == 'rimi' %}best-bg{% elif comparison.cheapest_store %}worse-bg{% endif %}">
+        <h2>
+          Rimi
+          {% if comparison.cheapest_store == 'rimi' %}
+          <span class="badge best">Pigesnis krepselis</span>
+          {% elif comparison.cheapest_store %}
+          <span class="badge worse">Brangesnis krepselis</span>
+          {% endif %}
+        </h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Preke</th>
+                <th>Kiekis</th>
+                <th>Kaina (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in comparison.items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>
+                  {% if item.prices.rimi is not None %}
+                  {{ item.prices.rimi }}
+                  {% else %}
+                  <span class="empty">Nerasta</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="store-total">Is viso: {{ comparison.totals.rimi }} EUR</p>
+      </div>
     </div>
 
     {% if comparison.cheapest_store %}
-    <p class="cheapest">
-      Pigiausias variantas: {{ comparison.cheapest_store|title }}
-    </p>
+    <div class="cheapest-box">
+      <p class="cheapest">Pigesnis krepselis: {{ comparison.cheapest_store|title }}</p>
+    </div>
+    {% else %}
+    <p class="empty">Nepavyko rasti prekiu abiejose parduotuvese.</p>
     {% endif %} {% else %}
     <p class="empty">Jusu krepselis tuscias.</p>
     {% endif %}
