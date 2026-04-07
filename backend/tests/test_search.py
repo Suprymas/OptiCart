@@ -161,3 +161,4 @@ class SearchTests(TestCase):
         self.assertEqual(len(data['results']), 1)
         self.assertEqual(data['results'][0]['name'], 'Banana')
         self.assertIn('rep_id', data['results'][0])
+
