@@ -1,4 +1,4 @@
-# Barboleta Working Agreements
+# Working Agreements
 
 ## Purpose
 
@@ -50,9 +50,8 @@ A task is done when all of the following are true:
 
 - Code is implemented and readable.
 - Local run works via Docker (`docker compose up --build`).
-- Relevant docs are updated.
 - No obvious unresolved errors in logs.
-- PR is reviewed and approved.
+- PR is reviewed and approved not by the code owner.
 
 ## Code Quality
 
