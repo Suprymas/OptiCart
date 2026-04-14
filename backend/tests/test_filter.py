@@ -152,3 +152,106 @@ class FilterTests(TestCase):
 
         self.assertLess(elapsed_time, 5.0)
         self.assertGreater(results.count(), 0)
+
+    def test_get_selected_filters_extracts_known_values_only(self):
+        selected = search_mod.get_selected_filters(
+            {
+                "dairy_type": " Pienas ",
+                "milk_fat": "2.5",
+                "unknown": "x",
+                "egg_size": "",
+            }
+        )
+
+        self.assertEqual(selected, {"dairy_type": "pienas", "milk_fat": "2.5"})
+
+    def test_search_products_returns_none_for_empty_query_and_filters(self):
+        Product.objects.create(name="Pienas", store="barbora", price="1.00")
+
+        results = search_mod.search_products("", "", {})
+
+        self.assertEqual(results.count(), 0)
+
+    def test_search_products_query_only_uses_fast_queryset_path(self):
+        milk = Product.objects.create(name="Pienas DVARO", store="barbora", price="1.00")
+        Product.objects.create(name="Duona", store="rimi", price="1.00")
+
+        results = search_mod.search_products("pienas", "", {})
+
+        self.assertEqual(results.count(), 1)
+        self.assertEqual(results.first().id, milk.id)
+
+    def test_search_products_query_without_matches_returns_empty(self):
+        Product.objects.create(name="Duona", store="barbora", price="1.00")
+        Product.objects.create(name="Sultys", store="rimi", price="1.00")
+
+        results = search_mod.search_products("neegzistuoja", "", {})
+
+        self.assertEqual(results.count(), 0)
+
+    def test_parse_amount_returns_none_when_no_amount_in_text(self):
+        self.assertIsNone(search_mod._parse_amount("be kiekio"))
+
+    def test_infer_category_returns_none_for_unknown_text(self):
+        self.assertIsNone(search_mod._infer_category("visiskai nezinoma kategorija"))
+
+    def test_extract_signature_dairy_type_fallback_without_explicit_type_field(self):
+        product = Product(name="Sviestas kaimiskas", description="Riebumas: 82%")
+
+        signature = search_mod._extract_product_signature(product)
+
+        self.assertEqual(signature["category"], "pieno-produktai")
+        self.assertEqual(signature["dairy_type"], "sviestas")
+
+    def test_extract_signature_egg_meat_produce_and_drink_variants(self):
+        egg = Product(name="Kiausiniai", description="Dydis M")
+        meat = Product(name="Jautienos ispjova", description="")
+        produce = Product(name="Agurkai", description="")
+        drink = Product(name="Gerimas alus sviesus", description="")
+
+        egg_sig = search_mod._extract_product_signature(egg)
+        meat_sig = search_mod._extract_product_signature(meat)
+        produce_sig = search_mod._extract_product_signature(produce)
+        drink_sig = search_mod._extract_product_signature(drink)
+
+        self.assertEqual(egg_sig["egg_size"], "m")
+        self.assertEqual(meat_sig["meat_type"], "jautiena")
+        self.assertEqual(produce_sig["produce_type"], "darzoves")
+        self.assertEqual(drink_sig["drink_type"], "alkoholis")
+
+    def test_matches_query_and_matches_category_helpers(self):
+        product = Product(name="Pienas DVARO 2,5%", description="Kiekis 1 L")
+
+        self.assertTrue(search_mod._matches_query(product, "pienas 2.5"))
+        self.assertFalse(search_mod._matches_query(product, "pienas 3.5"))
+        self.assertTrue(search_mod._matches_category({"category": "pieno-produktai"}, ""))
+
+    def test_matches_selected_filters_handles_missing_category_and_invalid_value(self):
+        signature = {"milk_fat": "2.5"}
+
+        self.assertTrue(search_mod._matches_selected_filters(signature, "", {"milk_fat": "2.5"}))
+        self.assertTrue(
+            search_mod._matches_selected_filters(
+                signature,
+                "pieno-produktai",
+                {"milk_fat": "9.9"},
+            )
+        )
+
+    def test_infer_category_from_filters_empty_and_detected(self):
+        self.assertEqual(search_mod._infer_category_from_filters({}), "")
+        self.assertEqual(search_mod._infer_category_from_filters({"dairy_type": "pienas"}), "pieno-produktai")
+
+    def test_infer_category_from_filters_returns_empty_for_unrelated_fields(self):
+        self.assertEqual(search_mod._infer_category_from_filters({"unknown": "value"}), "")
+
+    def test_matches_query_returns_false_for_blank_query(self):
+        product = Product(name="Pienas", description="")
+
+        self.assertFalse(search_mod._matches_query(product, "   "))
+
+    def test_has_search_results_supports_queryset_and_list(self):
+        qs = Product.objects.none()
+
+        self.assertFalse(search_mod.has_search_results(qs))
+        self.assertTrue(search_mod.has_search_results([1]))
