@@ -48,10 +48,10 @@
             <div class="add-to-cart-section">
               <div class="qty-controls">
                 <button class="qty-decr" id="qty-decr-btn">−</button>
-                <span class="qty" id="qty-display" data-value="1">1</span>
+                <span class="qty" id="qty-display" data-value="{% if in_cart_qty|default:0 > 0 %}{{ in_cart_qty }}{% else %}1{% endif %}">{% if in_cart_qty|default:0 > 0 %}{{ in_cart_qty }}{% else %}1{% endif %}</span>
                 <button class="qty-incr" id="qty-incr-btn">+</button>
               </div>
-              <button class="add-btn" id="add-to-cart-btn" data-product-id="{{ cheapest_product.id }}" data-product-name="{{ product_name }}">Prideti į krepšį</button>
+              <button class="add-btn" id="add-to-cart-btn" data-product-id="{{ cheapest_product.id }}" data-product-name="{{ product_name }}">{% if in_cart_qty|default:0 > 0 %}Atnaujinti{% else %}Prideti į krepšį{% endif %}</button>
             </div>
           </div>
 
@@ -108,6 +108,8 @@
         e.preventDefault();
         const productId = addBtn.dataset.productId;
         const qty = parseInt(qtyDisplay.dataset.value) || 1;
+        // disable button to prevent duplicate clicks
+        addBtn.disabled = true;
 
         // Get CSRF token from cookie
         function getCookie(name) {
@@ -134,7 +136,10 @@
           if (data.success) {
             addBtn.textContent = 'Prideta! ✓';
             setTimeout(() => {
-              addBtn.textContent = 'Prideti į krepšį';
+              // if the server reports the item quantity > 0 or action was 'updated', show 'Atnaujinti'
+              const shouldShowUpdate = (data && (data.action === 'updated' || (data.quantity && data.quantity > 0)));
+              addBtn.textContent = shouldShowUpdate ? 'Atnaujinti' : 'Prideti į krepšį';
+              addBtn.disabled = false;
             }, 2000);
           }
         } catch (error) {
