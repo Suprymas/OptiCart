@@ -243,7 +243,27 @@ def product_compare(request, product_name):
     
     # Session cart
     sess_cart = request.session.get('cart', {})
-    
+    # Build name -> quantity map from session cart so template can show "Atnaujinti" when needed
+    name_qty = {}
+    if sess_cart:
+        for key, val in sess_cart.items():
+            try:
+                pid = int(key)
+                try:
+                    prod = Product.objects.get(pk=pid)
+                    name = prod.name
+                except Exception:
+                    name = str(key)
+            except Exception:
+                name = str(key)
+            try:
+                qty = int(val or 0)
+            except Exception:
+                qty = 0
+            name_qty[name] = name_qty.get(name, 0) + qty
+
+    in_cart_qty = int(name_qty.get(product_name, 0)) if name_qty.get(product_name, 0) > 0 else 0
+
     return render(request, 'shop/product_compare.html', {
         'product_name': product_name,
         'all_products': products_list,
@@ -252,6 +272,7 @@ def product_compare(request, product_name):
         'cart': sess_cart,
         'price_difference': price_difference,
         'has_comparison': len(products_list) == 2,
+        'in_cart_qty': in_cart_qty,
     })
 
 
