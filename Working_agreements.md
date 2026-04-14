@@ -48,10 +48,14 @@ This document defines how we collaborate so the team can move fast with clarity,
 
 A task is done when all of the following are true:
 
-- Code is implemented and readable.
+- Code is implemented and readable (Clean code).
+- Requirements are implemented 100% fully (AC).
 - Local run works via Docker (`docker compose up --build`).
+- Requirement unit test coverage >80%.
 - No obvious unresolved errors in logs.
+- CI pipeline successful after push (build + test).
 - PR is reviewed and approved not by the code owner.
+- If any issues arise they must be resolved before merging.
 
 ## Code Quality
 
