@@ -1,58 +1,30 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Demo: Issaugoti krepseli{% endblock %}
+{% block title %}Kainų istorija{% endblock %}
 
 {% block content %}
   <section class="card stack">
-    <h1>Demo: Issaugoti krepseli</h1>
-
-    {% if saved %}
-    <div class="ok">Šablonas išsaugotas: <strong>{{ saved }}</strong></div>
-    {% endif %}
-
-    <p class="subtle">Sis puslapis yra demonstracija. Forma nesitikrina prisijungimo ir saugo sablonus tik narsykles sesijoje.</p>
-
-    <form method="post" action="" class="stack">
-      {% csrf_token %}
-      <div class="form-row">
-        <input class="input" name="name" type="text" placeholder="Pvz. Seimos pirkiniai" />
-      </div>
-
-      <fieldset>
-        <legend>Pasirinkite prekes</legend>
-        {% for p in products %}
-        <div class="form-row" style="display:flex;align-items:center;gap:8px;">
-          <label style="flex:1;">
-            <input type="checkbox" name="select_{{ p.id }}" value="1" />
-            {{ p.name }}
-          </label>
-          <input class="input" type="number" name="qty_{{ p.id }}" value="1" min="1" style="width:88px;" />
-        </div>
-        {% endfor %}
-      </fieldset>
-
-      <button class="btn-primary" type="submit">Issaugoti (demo)</button>
-    </form>
-
-    <h2>Kainu diagrama (demo)</h2>
-    <p class="subtle">Pasirinkite preke, kad perziuretumete kainu tendencija.</p>
+    <h1>Kainų istorija</h1>
+    <p class="subtle">Pasirinkite prekę, kad peržiūrėtumėte kainų tendenciją.</p>
     <div class="stack">
       <div class="form-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <label for="chart_product">Preke:</label>
+        <label for="chart_product">Prekė:</label>
         <select id="chart_product">
           {% for p in products %}
-          <option value="{{ p.name }}">{{ p.name }}</option>
+          <option value="{{ p.name }}" {% if p.name == selected_product %}selected{% endif %}>{{ p.name }}</option>
           {% endfor %}
         </select>
 
         <label for="interval">Intervalas:</label>
         <select id="interval">
           <option value="7">7 dienos</option>
-          <option value="30" selected>30 dienu</option>
-          <option value="90">90 dienu</option>
+          <option value="30" selected>30 dienų</option>
+          <option value="90">90 dienų</option>
         </select>
 
-        <label><input type="checkbox" id="multi_stores" checked /> Rodyti kelias parduotuves</label>
+        <span>Parduotuvės:</span>
+        <label><input type="checkbox" class="store-filter" value="barbora" checked /> Barbora</label>
+        <label><input type="checkbox" class="store-filter" value="rimi" checked /> Rimi</label>
       </div>
 
       <div class="canvas-wrap">
@@ -80,7 +52,7 @@
           const seriesObj = json.series || {};
           const storesKeys = Object.keys(seriesObj);
           if (storesKeys.length === 0) {
-            alert('No data');
+            alert('Nėra duomenų');
             return;
           }
 
@@ -92,6 +64,7 @@
             borderColor: colors[idx % colors.length],
             tension: 0.2,
             fill: false,
+            spanGaps: true,
           }));
 
           const ctx = document.getElementById('priceChart').getContext('2d');
@@ -105,6 +78,7 @@
               data: { labels: labels, datasets: datasets },
               options: {
                 responsive: true,
+                spanGaps: true,
                 plugins: { tooltip: { mode: 'index', intersect: false } },
                 interaction: { mode: 'nearest', axis: 'x', intersect: false },
                 scales: {
@@ -117,28 +91,31 @@
         }
 
         function selectedStores() {
-          const multi = document.getElementById('multi_stores').checked;
-          const all = ['barbora','rimi','lidl'];
-          if (!multi) {
-            return [all[0]];
-          }
-          return all;
+          return Array.from(document.querySelectorAll('.store-filter:checked')).map(el => el.value);
         }
 
         function reload() {
           const product = document.getElementById('chart_product').value;
+          if (!product) {
+            return;
+          }
           const interval = parseInt(document.getElementById('interval').value, 10);
           const stores = selectedStores();
+          if (!stores.length) {
+            return;
+          }
           loadChart(product, interval, stores);
         }
 
         document.getElementById('chart_product').addEventListener('change', reload);
         document.getElementById('interval').addEventListener('change', reload);
-        document.getElementById('multi_stores').addEventListener('change', reload);
+        document.querySelectorAll('.store-filter').forEach((el) => {
+          el.addEventListener('change', reload);
+        });
 
         // load initial
         reload();
     </script>
-    <p><a href="{% url 'shop:compare' %}">Grizti i palyginima</a></p>
+    <p><a href="{% url 'shop:compare' %}">Grįžti į palyginimą</a></p>
   </section>
 {% endblock %}

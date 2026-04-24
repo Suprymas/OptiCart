@@ -364,7 +364,6 @@
       <div class="basket-item-actions">
         <div style="font-weight: 600; color: #333;">
           {% if item.stores.0.price %}
-            {% widthratio item.stores.0.price item.quantity item.quantity %}
             {{ item.stores.0.price|floatformat:2 }} EUR × {{ item.quantity }}
           {% endif %}
         </div>

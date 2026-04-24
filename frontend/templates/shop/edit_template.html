@@ -405,6 +405,8 @@
 
           let html = '';
           results.forEach(product => {
+            const productId = product.id || product.rep_id;
+            const stores = Array.isArray(product.stores) ? product.stores : [];
             html += `
               <div class="product-item">
                 <img 
@@ -416,7 +418,7 @@
                 <div class="product-item-details">
                   <h3 class="product-item-name">${product.name}</h3>
                   <div class="product-item-prices">
-                    ${product.stores.map(store => `
+                    ${stores.map(store => `
                       <div class="product-item-price">
                         <div class="product-item-price-label">${store.store}</div>
                         <div class="product-item-price-value">
@@ -427,8 +429,8 @@
                   </div>
                 </div>
                 <div class="product-item-actions">
-                  <input type="number" id="qty-${product.id}" value="1" min="1" max="10" />
-                  <button onclick="addToTemplateUI(${TEMPLATE_ID}, ${product.id}, '${product.name.replace(/'/g, "\\'")}')">
+                  <input type="number" id="qty-${productId}" value="1" min="1" max="10" />
+                  <button onclick="addToTemplateUI(${TEMPLATE_ID}, ${productId}, '${product.name.replace(/'/g, "\\'")}')" ${productId ? '' : 'disabled'}>
                     + Pridėti
                   </button>
                 </div>
