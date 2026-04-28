@@ -287,44 +287,41 @@ def template_compare(request, template_id: int):
 
 
 
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def demo_save_template(request):
-    """Demo page to show a simple Save-as-Template form without auth checks.
+    """Price history page.
 
-    This is for manual testing / UI preview only. It stores the submitted
-    template name in the session under `demo_saved` and shows a small
-    confirmation on the page.
+    Shows selectable products from the same comparable product set as the home
+    page (products available in both stores).
     """
-    # Hardcoded demo products shown on the page
-    demo_products = [
-        {'id': 'apples', 'name': 'Apelsinai'},
-        {'id': 'milk', 'name': 'Pienas (1L)'},
-        {'id': 'bread', 'name': 'Duona'},
-        {'id': 'eggs', 'name': 'Kiaušiniai (10vnt)'},
-        {'id': 'cheese', 'name': 'Sūris'},
-    ]
+    product_names = []
+    try:
+        for name in Product.objects.values_list('name', flat=True).distinct().order_by('name'):
+            stores = list(Product.objects.filter(name=name).values_list('store', flat=True).distinct())
+            if len(stores) >= 2:
+                product_names.append(name)
+    except DatabaseError:
+        product_names = []
 
-    saved = None
-    if request.method == 'POST':
-        name = (request.POST.get('name') or '').strip()
-        # collect selected items and quantities
-        items = []
-        for p in demo_products:
-            pid = p['id']
-            if request.POST.get(f'select_{pid}'):
-                try:
-                    qty = int(request.POST.get(f'qty_{pid}', '1'))
-                except ValueError:
-                    qty = 1
-                items.append({'product_name': p['name'], 'quantity': qty})
+    # Fallback if DB is unavailable/empty
+    if not product_names:
+        product_names = [
+            'Apelsinai',
+            'Pienas (1L)',
+            'Duona',
+            'Kiaušiniai (10 vnt.)',
+            'Sūris',
+        ]
 
-        if name:
-            sess = request.session.setdefault('demo_saved', [])
-            sess.append({'name': name, 'items': items})
-            request.session.modified = True
-            saved = name
+    selected_product = (request.GET.get('product') or '').strip()
+    if selected_product not in product_names and product_names:
+        selected_product = product_names[0]
 
-    return render(request, 'shop/demo_save.html', {'saved': saved, 'products': demo_products})
+    products = [{'name': name} for name in product_names]
+    return render(request, 'shop/demo_save.html', {
+        'products': products,
+        'selected_product': selected_product,
+    })
 
 
 def _synthetic_history_for_key(key: str, days: int = 30):
@@ -346,6 +343,30 @@ def _synthetic_history_for_key(key: str, days: int = 30):
     return series
 
 
+def _synthetic_fluctuating_history_for_key(key: str, days: int = 30):
+    """Return synthetic series with stronger visible fluctuations.
+
+    Useful for demo charts where price movement should be obvious.
+    """
+    from datetime import date, timedelta
+    import math
+
+    today = date.today()
+    series = []
+    base_price = 2.5 + (abs(hash(key)) % 150) / 100.0  # 2.50 - 3.99
+
+    for i in range(days - 1, -1, -1):
+        d = today - timedelta(days=i)
+        t = (days - 1 - i)
+        weekly_wave = math.sin((2 * math.pi / 7) * t) * 0.22
+        short_wave = math.sin((2 * math.pi / 3) * t) * 0.08
+        deterministic_noise = ((abs(hash(key + str(d.toordinal()))) % 15) - 7) * 0.01
+        price = round(base_price + weekly_wave + short_wave + deterministic_noise, 2)
+        series.append({'date': d.isoformat(), 'price': max(price, 0.59)})
+
+    return series
+
+
 def demo_chart_data(request):
     """Return JSON price history for a demo product.
 
@@ -359,7 +380,7 @@ def demo_chart_data(request):
     if not prod:
         return JsonResponse({'error': 'missing product'}, status=400)
 
-    stores_param = request.GET.get('stores') or 'barbora,rimi,lidl'
+    stores_param = request.GET.get('stores') or 'barbora,rimi'
     stores = [s.strip() for s in stores_param.split(',') if s.strip()]
     try:
         days = int(request.GET.get('interval', '30'))
@@ -370,6 +391,16 @@ def demo_chart_data(request):
 
     result = {}
     for store in stores:
+        # Demo requirement: Barbora should show visibly fluctuating fake data.
+        if store == 'barbora':
+            result[store] = _synthetic_fluctuating_history_for_key(prod + '|barbora|fluct', days)
+            continue
+
+        # Demo requirement: Rimi history is always synthetic/fake.
+        if store == 'rimi':
+            result[store] = _synthetic_history_for_key(prod + '|rimi|fake', days)
+            continue
+
         # try to find a real product for this store; if DB isn't ready, fall back to synthetic
         try:
             p = Product.objects.filter(name__icontains=prod, store=store).first()
@@ -440,8 +471,13 @@ def search_api(request):
             image_url = stores[0].image_url or stores[1].image_url
             groups.append({
                 'name': name,
+                'id': stores[0].id,
                 'rep_id': stores[0].id,
                 'image_url': image_url,
+                'stores': [
+                    {'id': s.id, 'store': s.store, 'price': s.price}
+                    for s in stores
+                ],
             })
 
         return JsonResponse({
@@ -454,7 +490,7 @@ def search_api(request):
 
     results_qs = search_products(q, category, selected_filters)
 
-    # build unique-name groups (name + representative id + image_url)
+    # build unique-name groups (name + representative id + image_url + store prices)
     groups = []
     seen = set()
     for p in results_qs:
@@ -462,11 +498,22 @@ def search_api(request):
         if name in seen:
             continue
         seen.add(name)
+
+        stores = list(Product.objects.filter(name=name).order_by('store'))
         image_url = p.image_url if hasattr(p, 'image_url') and p.image_url else None
+        if stores:
+            image_url = image_url or stores[0].image_url or (stores[1].image_url if len(stores) > 1 else None)
+
+        rep_id = getattr(p, 'id', None) or (stores[0].id if stores else None)
         groups.append({
             'name': name,
-            'rep_id': getattr(p, 'id', None),
+            'id': rep_id,
+            'rep_id': rep_id,
             'image_url': image_url,
+            'stores': [
+                {'id': s.id, 'store': s.store, 'price': s.price}
+                for s in stores
+            ],
         })
 
     return JsonResponse({
